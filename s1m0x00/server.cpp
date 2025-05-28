@@ -1,6 +1,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <cstring>
+#include <cstdio>
 #include <string>
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -16,7 +17,7 @@ int main() {
     int reuse = 1;
     setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 
-    sockaddr_in addr{};
+    sockaddr_in addr = {};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(8080);
     addr.sin_addr.s_addr = INADDR_ANY;
@@ -33,7 +34,7 @@ int main() {
 
     std::cout << "Server listening on port 8080...\n";
 
-    sockaddr_in client_addr{};
+    sockaddr_in client_addr = {};
     socklen_t client_len = sizeof(client_addr);
     int client_fd = accept(server_fd, (sockaddr*)&client_addr, &client_len);
     if (client_fd < 0) {

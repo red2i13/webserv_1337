@@ -1,7 +1,7 @@
 #include "HttpRequest.hpp"
 
 bool HttpRequest::parse(const std::string &raw_request){
-    ssize_t header_end = raw_request.find("\r\n\r\n");
+    size_t header_end = raw_request.find("\r\n\r\n");
     if (header_end == std::string::npos){
         std::cout<<"1 parse err"<<std::endl;
         return (false);
@@ -16,13 +16,14 @@ bool HttpRequest::parse(const std::string &raw_request){
     if (method.empty() || target.empty() || version.empty())
         return false;
     header_part.erase(0, first_crlf + 2);
-    ssize_t pos = 0;
+    size_t pos = 0;
 
     while((pos = header_part.find("\r\n")) != std::string::npos){
         std::string line = header_part.substr(0, pos);
         header_part.erase(0, pos + 2);
         if (line.empty())
             break;
+        //extract header key : value
     }
     return (true);
 }

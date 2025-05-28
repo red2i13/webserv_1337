@@ -54,6 +54,7 @@ int main() {
     if (!req.parse(request))
     {
         std::cerr<<"Failed to parse !";
+        return 1;
     }
 
     std::cout << "Received request:\n" << request << std::endl;

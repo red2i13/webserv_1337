@@ -4,6 +4,7 @@
 #include <string>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include "HttpRequest.hpp"
 
 int main() {
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -39,15 +40,20 @@ int main() {
         perror("accept");
         return 1;
     }
-
+    //receive the request from the client
     std::string request;
-    char buffer[4096];
+    HttpRequest req;
+    char buffer[1024];
     ssize_t bytes;
 
     while ((bytes = recv(client_fd, buffer, sizeof(buffer), 0)) > 0) {
         request.append(buffer, bytes);
         if (request.find("\r\n\r\n") != std::string::npos)
             break;
+    }
+    if (!req.parse(request))
+    {
+        std::cerr<<"Failed to parse !";
     }
 
     std::cout << "Received request:\n" << request << std::endl;

@@ -7,11 +7,14 @@
 
 class HttpRequest{
     public :
+        std::string start_line;
         std::string method;
         std::string target;
         std::string version;
         std::string body;
         bool parse(const std::string &raw_request);
+    private :
+        bool parse_start_line();
 };
 
 

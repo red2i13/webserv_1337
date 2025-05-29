@@ -13,13 +13,6 @@ bool HttpRequest::parse(const std::string &raw_request){
     this->start_line = header_part.substr(0, first_crlf);
     if (!parse_start_line())
         return (false);
-    std::cout<<"========================"<<std::endl;
-    std::cout<<"target : "<<target<<std::endl;
-    std::cout<<"query : "<<query<<std::endl;
-    for (std::map<std::string, std::string>::iterator it = query_param.begin(); it != query_param.end(); ++it) {
-    std::cout << it->first << " = " << it->second << std::endl;
-    }
-    std::cout<<"========================"<<std::endl;
     if (method.empty() || target.empty() || version.empty())
         return false;
     header_part.erase(0, first_crlf + 2);

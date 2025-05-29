@@ -5,8 +5,8 @@
 #include <iostream>
 #include <cstdio>
 #include <cerrno>
-
-
+#include <arpa/inet.h>
+#include <sys/socket.h>
 
 
 

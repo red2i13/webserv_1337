@@ -34,7 +34,10 @@ bool HttpRequest::parse_start_line(){
         return false;
 
     this->method = this->start_line.substr(0, first_space);
-
+    if (method != "GET" && method != "POST" && method != "DELETE"){
+        std::cout<<"METHODE DALSE"<<std::endl;
+        return (false);
+    }
     size_t second_space = this->start_line.find(' ', first_space + 1);
     if (second_space == std::string::npos)
         return false;
@@ -50,7 +53,8 @@ bool HttpRequest::parse_start_line(){
     }
     this->target = url_decode(this->target);
     this->version = this->start_line.substr(second_space + 1);
-
+    if (version != "HTTP/1.1")
+        return (false);
     return (true);
 }
 

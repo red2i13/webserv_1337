@@ -1,6 +1,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <cstring>
+#include <cstdio>
 #include <arpa/inet.h>
 
 int main() {
@@ -10,7 +11,7 @@ int main() {
         return 1;
     }
 
-    sockaddr_in server_addr{};
+    sockaddr_in server_addr = {};
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8080);  // Connect to port 8080
     inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr); // localhost

@@ -14,11 +14,13 @@ class HttpRequest{
         std::string target;
         std::string query;
         std::map<std::string, std::string> query_param;
+        std::map<std::string, std::string> headers;
         std::string version;
         std::string body;
         bool parse(const std::string &raw_request);
         std::string url_decode(const std::string &str);
         void extract_query(const std::string& q);
+        std::string trim(const std::string &str);
     private :
         bool parse_start_line();
 };

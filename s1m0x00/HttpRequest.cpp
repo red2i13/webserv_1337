@@ -24,7 +24,14 @@ bool HttpRequest::parse(const std::string &raw_request){
         if (line.empty())
             break;
         //extract header key : value
+        size_t colon = line.find(":");
+        if (colon != std::string::npos){
+            std::string key = trim(line.substr(0, colon)); 
+            std::string value = trim(line.substr(colon + 1));
+            headers[key] = value; 
+        }
     }
+    this->body = body_part;
     return (true);
 }
 
@@ -35,7 +42,7 @@ bool HttpRequest::parse_start_line(){
 
     this->method = this->start_line.substr(0, first_space);
     if (method != "GET" && method != "POST" && method != "DELETE"){
-        std::cout<<"METHODE DALSE"<<std::endl;
+        std::cout<<"Invalid method !"<<std::endl;
         return (false);
     }
     size_t second_space = this->start_line.find(' ', first_space + 1);
@@ -54,7 +61,10 @@ bool HttpRequest::parse_start_line(){
     this->target = url_decode(this->target);
     this->version = this->start_line.substr(second_space + 1);
     if (version != "HTTP/1.1")
+    {
+        std::cout<<"Unsupported HTTP version !"<<std::endl;
         return (false);
+    }
     return (true);
 }
 
@@ -94,6 +104,16 @@ void HttpRequest::extract_query(const std::string& q) {
 
         start = end + 1;
     }
+}
+
+std::string HttpRequest::trim(const std::string &str) {
+    size_t first = str.find_first_not_of(" \t\r\n");
+    size_t last = str.find_last_not_of(" \t\r\n");
+
+    if (first == std::string::npos || last == std::string::npos)
+        return "";
+
+    return str.substr(first, last - first + 1);
 }
 
 

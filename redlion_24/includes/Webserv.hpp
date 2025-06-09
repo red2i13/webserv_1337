@@ -1,0 +1,10 @@
+#ifndef WEBSERV_HPP
+#define WEBSERV_HPP
+
+//includes classes headers for config and other parts 
+
+#include <iostream>
+#include <string>
+#include <vector>
+
+#endif

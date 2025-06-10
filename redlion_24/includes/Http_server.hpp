@@ -2,18 +2,20 @@
 #define HTTP_SERVER_HPP
 
 #include "Webserv.hpp"
+#include "Server_block.hpp"
+
 
 class Http_server{
     private:
-        std::vector<std::string> server_names;
-        std::vector<int> port;
+        std::vector<int> socket_fds;
+        std::vector<Server_block> blocks;
     public:
     Http_server();
     ~Http_server();
-    Http_server(const Http_server &obj);
-    Http_server & operator=(const Http_server &obj);
-    
+    // Http_server(const Http_server &obj);
+    // Http_server & operator=(const Http_server &obj);
+    int init_server_blocks();
     int socket_main_loop();
-}
+};
 
 #endif

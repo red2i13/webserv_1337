@@ -1,7 +1,7 @@
 CPPFLAGS = -Wall -Wextra -Werror -std=c++98 -g3
 CC = c++
-NAME = Convert
-FILES = main.cpp socket_loop.cpp
+NAME = webserv
+FILES = main.cpp Http_server.cpp Server_block.cpp
 OBJECTS = $(FILES:.cpp=.o)
 
 all: $(NAME)

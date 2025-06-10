@@ -2,21 +2,22 @@ CPPFLAGS = -Wall -Wextra -Werror -std=c++98 -g3
 CC = c++
 NAME = webserv
 FILES = main.cpp Http_server.cpp Server_block.cpp
-OBJECTS = $(FILES:.cpp=.o)
+SOURCES = $(addprefix src/, $(FILES))
+OBJECTS = $(SOURCES:.cpp=.o)
 
 all: $(NAME)
 
 $(NAME): $(OBJECTS)
-        $(CC) $(CPPFLAGS) $^ -o $@
+	$(CC) $(CPPFLAGS) $^ -o $@
 
 %.o: %.cpp
-        $(CC) -c $(CPPFLAGS) -o $@ $<
+	$(CC) -c $(CPPFLAGS) -o $@ $<
 
 clean:
-        rm -rf *.o
+	rm -rf src/*.o
 
 fclean: clean
-        $(RM) $(NAME)
+	$(RM) $(NAME)
 re: fclean all
 
 .PHONY: clean fclean re

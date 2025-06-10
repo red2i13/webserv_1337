@@ -9,7 +9,7 @@ class Server_block{
 		struct sockaddr_in server_ip;
 	public:
 		int get_port() const;
-		struct sockaddr_in *get_ip_addr() const;
+		struct sockaddr_in *get_ip_addr() ;
 		std::vector<std::string> get_Snames() const;
 		Server_block();
 		Server_block(std::string ip, std::string port,std::vector<std::string> server_names);

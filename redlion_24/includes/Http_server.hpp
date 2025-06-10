@@ -8,7 +8,7 @@
 class Http_server{
     private:
         std::vector<int> socket_fds;
-        std::vector<Server_block> blocks;
+        std::vector<Server_block*> blocks;
     public:
     Http_server();
     ~Http_server();

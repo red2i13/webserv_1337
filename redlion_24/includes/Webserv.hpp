@@ -11,7 +11,9 @@
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <netdb.h>
-
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 
 #endif

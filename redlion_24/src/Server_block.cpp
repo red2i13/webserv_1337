@@ -6,7 +6,6 @@
 
 // int Server_block::get_port() const {}
 struct sockaddr_in *Server_block::get_ip_addr(){
-	std::cout << "ip addrss get_ip_addr" << &server_ip << std::endl;
 	return (&server_ip);
 }
 
@@ -25,7 +24,7 @@ Server_block::Server_block(){
 	server_names.push_back("local");
 	server_ip.sin_family = AF_INET;
 	server_ip.sin_addr.s_addr = INADDR_ANY;
-	server_ip.sin_port = htons(80);
+	server_ip.sin_port = htons(8080);
 
 }
 

@@ -1,7 +1,7 @@
 CPPFLAGS = -Wall -Wextra -Werror -std=c++98 -g3
 CC = c++
 NAME = webserv
-FILES = main.cpp Http_server.cpp Server_block.cpp
+FILES = main.cpp Http_server.cpp Server_block.cpp HttpRequest.cpp
 SOURCES = $(addprefix src/, $(FILES))
 OBJECTS = $(SOURCES:.cpp=.o)
 

@@ -7,6 +7,7 @@
 //using cast of c or c++
 //the backlog argument of listen how much shoudl i allow for pending
 //find a solution for previlieged port below 1024 exit or handle it
+
 int Http_server::init_server_blocks(){
     int i = 0;
     std::vector<Server_block*>::iterator it;
@@ -39,8 +40,24 @@ int Http_server::socket_main_loop(){
             c_fd = accept(socket_fds[0], reinterpret_cast<struct sockaddr *>(&c_addr), reinterpret_cast<socklen_t*>(&len_c_addr));
             if(c_fd != -1)
             std::cout << "Client connected succesfuly c_fd value: " << c_fd <<  std::endl; 
+            //************parse the request here med part***************
+            char buffer[1024];
+            ssize_t bytes;
+            while ((bytes = recv(c_fd, buffer, sizeof(buffer), 0)) > 0) {
+                request.append(buffer, bytes);
+                if (request.find("\r\n\r\n") != std::string::npos)
+                    break;
+            }
+            if (!req.parse(request))
+            {
+                std::cerr<<"Failed to parse !";
+                return 1;
+            }
+        
+            std::cout << "Received request:\n" << request << std::endl;
+            //****************************************************** */
+            close(c_fd);
         }
-        close(c_fd);
     }
     return(0);
 }

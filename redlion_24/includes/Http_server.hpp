@@ -18,6 +18,7 @@ class Http_server{
     // Http_server & operator=(const Http_server &obj);
     int init_server_blocks();
     int socket_main_loop();
+    int checkIfListen(int fd);
 };
 
 #endif

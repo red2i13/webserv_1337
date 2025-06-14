@@ -28,6 +28,16 @@ Server_block::Server_block(){
 
 }
 
+Server_block::Server_block(std::string name_server, int port){
+	(void)port;
+	(void)name_server;
+	server_names.push_back("barca");
+	server_names.push_back("barcelona");
+	server_ip.sin_family = AF_INET;
+	server_ip.sin_addr.s_addr = INADDR_ANY;
+	server_ip.sin_port = htons(4221);
+
+}
 
 //paramertized constructor for init ip and port and server name in one go
 // Server_block::Server_block(std::string ip, std::string port,std::vector<std::string> server_names){}

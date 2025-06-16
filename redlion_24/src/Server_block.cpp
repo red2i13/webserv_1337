@@ -16,8 +16,6 @@ std::vector<std::string> Server_block::get_Snames() const{
 }
 
 
-
-
 //default constructor add local host and port 80 as basic server block
 Server_block::Server_block(){
 	server_names.push_back("localhost");

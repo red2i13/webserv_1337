@@ -17,11 +17,14 @@ int Http_server::init_server_blocks(){
         socket_fds.push_back(socket(AF_INET, SOCK_STREAM, 0));
         int opt = 1;
         setsockopt(socket_fds[i], SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-        if(bind(socket_fds[i], addr, sizeof(struct sockaddr_in)) == -1{
+        if(bind(socket_fds[i], addr, sizeof(struct sockaddr_in)) == -1){
             perror("bind fails: ");
             return(1);
         }
-        listen(socket_fds[i], 1);
+        if(listen(socket_fds[i], 64) == -1){
+            return(perror("listen fails: "), 1);
+        }
+        
         std::cout << "initialization num " << i << std::endl;
         i++;
     }

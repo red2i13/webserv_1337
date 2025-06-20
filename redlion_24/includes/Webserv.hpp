@@ -15,5 +15,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/epoll.h>
-
+#include <deque>
+#include <cctype>
 #endif

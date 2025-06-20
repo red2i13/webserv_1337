@@ -4,9 +4,14 @@
 #include "Webserv.hpp"
 #include <fstream>
 class Server_Conf_Parser{
+	enum{
+		DIRECTIVE_NODE,
+		BLOCK_NODE,
+		VALUE_NODE,
+	};
 	private:
 		std::string file_name;
-		std::string content;
+		std::deque<std::string> f;
 	public:
 		int read_data();
 		int clean_data();

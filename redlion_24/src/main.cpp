@@ -15,7 +15,9 @@ int main(int ac, char *av[])
     (void)ac;
     Server_Conf_Parser ps(av[1]);
     ps.read_data();
+    ps.clean_data();
     exit(2);
+
     //TODO
     //init the server blocks
     Http_server core;

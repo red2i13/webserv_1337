@@ -33,11 +33,16 @@ int main()
 }
 */
 int Server_Conf_Parser::clean_data(){
-	for(int i = 0; i < f.size(); i++){
+	for(size_t i  = 0; i < f.size(); i++){
 		//skip comment and go to the next line
 		if(f[i][0] == '#')
 			continue;
-		else if(f[i][0])
+		else if(isdigit(f[i][0]))
+		{
+			//free if memory dynamic and return error
+			return(1);
+		}
+		// else if(f)
 	}
 	//remove any whitespaces (final step)
 	for(size_t i = 0; i < f.size(); i++)	{
@@ -61,8 +66,49 @@ int Server_Conf_Parser::clean_data(){
 
 }
 
-int Server_Conf_Parser::parse_data(){
-	
+int parse_data(	std::vector<ConfigNode> &parent, int index){
+
+	for(size_t i = 0; i < f.size(); i++){
+		//skip whitespaces
+		size_t first_non_sp = f[i].find_first_not_of(" \0\t\n\v\f\r");
+		if(first_non_sp == std::string::npos){
+			f.erase(f.begin() + i);
+			i--;
+			continue;
+		}
+		else if(first_non_sp != std::string::npos)
+			f[i].erase(0, first_non_sp);
+		
+		size_t last_non_sp = f[i].find_last_not_of(" \0\t\n\v\f\r");
+		if(last_non_sp != std::string::npos)
+			f[i].erase(last_non_sp + 1, f[i].size() - 1);
+		//check the comments
+		if(f[i].empty() || f[i][0] == '#')
+			continue;
+		//create token
+		std::vector <std::string> tokens;
+		std::string token;
+		std::istringstream iss(f[i]);
+
+		while(iss >> token){
+			tokens.push_back(token);
+		}
+		if(tokens.empty())
+			continue;
+		ConfigNode node;
+		node.name = tokens[0];
+		if(tokens.size() > 1){
+			if(tokens.back() == "{"){
+				//remove the brace
+				parse_data(node.children, index + 1);
+			}
+			if(tokens.back().back() == ';'){
+				
+			}
+		}
+		//process which directive
+		// init the blocks classes
+	}
 	return(0);
 }
 

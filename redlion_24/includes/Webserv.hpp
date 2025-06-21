@@ -4,6 +4,7 @@
 //includes classes headers for config and other parts 
 
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <sys/socket.h>

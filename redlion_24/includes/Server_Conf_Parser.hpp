@@ -15,9 +15,18 @@ class Server_Conf_Parser{
 	public:
 		int read_data();
 		int clean_data();
-		int parse_data();
+		int parse_data(	std::vector<ConfigNode> &parent, int index);
 		Server_Conf_Parser();
 		Server_Conf_Parser(std::string file_path);
+};
+
+
+//Ast struct node
+
+struct ConfigNode{
+	std::string name;
+	std::vector<std::string> values;
+	std::vector<ConfigNode> children;
 };
 
 #endif

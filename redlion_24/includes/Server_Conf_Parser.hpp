@@ -3,6 +3,15 @@
 
 #include "Webserv.hpp"
 #include <fstream>
+
+
+//Ast struct node
+
+struct ConfigNode{
+	std::string name;
+	std::vector<std::string> values;
+	std::vector<ConfigNode> children;
+};
 class Server_Conf_Parser{
 	enum{
 		DIRECTIVE_NODE,
@@ -15,18 +24,11 @@ class Server_Conf_Parser{
 	public:
 		int read_data();
 		int clean_data();
-		int parse_data(	std::vector<ConfigNode> &parent, int index);
+		int parse_data(	std::vector<ConfigNode> &parent, size_t &i);
 		Server_Conf_Parser();
 		Server_Conf_Parser(std::string file_path);
 };
 
 
-//Ast struct node
-
-struct ConfigNode{
-	std::string name;
-	std::vector<std::string> values;
-	std::vector<ConfigNode> children;
-};
 
 #endif

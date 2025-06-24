@@ -66,9 +66,10 @@ int Server_Conf_Parser::clean_data(){
 
 }
 
-int parse_data(	std::vector<ConfigNode> &parent, int index){
+#include <cstdlib>
+int Server_Conf_Parser::parse_data(	std::vector<ConfigNode> &parent, size_t &i){
 
-	for(size_t i = 0; i < f.size(); i++){
+	for(;i < f.size(); i++){
 		//skip whitespaces
 		size_t first_non_sp = f[i].find_first_not_of(" \0\t\n\v\f\r");
 		if(first_non_sp == std::string::npos){
@@ -98,14 +99,28 @@ int parse_data(	std::vector<ConfigNode> &parent, int index){
 		ConfigNode node;
 		node.name = tokens[0];
 		if(tokens.size() > 1){
-			if(tokens.back() == "{"){
+			if(tokens.back()[tokens.back().size() - 1] == '{'){
 				//remove the brace
-				parse_data(node.children, index + 1);
-			}
-			if(tokens.back().back() == ';'){
-				
+				tokens.pop_back();
+				std::cout << tokens[0] << std::endl;
+				i++;
+				parse_data(node.children, i);
 			}
 		}
+		if(tokens.size() > 1){
+
+			if(tokens.back()[tokens.back().size() - 1] == ';'){
+				tokens.back().erase(tokens.back().size() - 1);
+				std::cout << "Check removing the semicolon" << tokens.back() << std::endl;
+			}
+		}
+		if(tokens.size() > 1)
+			node.values.assign(tokens.begin() + 1 , tokens.end());
+		if(tokens.back() == "}"){
+			parent.push_back(node);
+			return(0);
+		}
+		parent.push_back(node);
 		//process which directive
 		// init the blocks classes
 	}

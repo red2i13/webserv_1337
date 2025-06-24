@@ -13,10 +13,15 @@ int main(int ac, char *av[])
 {
     //parse config file
     (void)ac;
-    Server_Conf_Parser ps(av[1]);
-    ps.read_data();
-    ps.clean_data();
-    exit(2);
+
+    (void)av;
+    // std::vector<ConfigNode> master;
+    // size_t index;
+    // index = 0;
+    // Server_Conf_Parser ps(av[1]);
+    // ps.read_data();
+    // ps.parse_data(master, index);
+    // exit(2);
 
     //TODO
     //init the server blocks

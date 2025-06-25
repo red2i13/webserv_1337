@@ -1,22 +1,23 @@
+CPPFLAGS = -Wall -Wextra -Werror -std=c++98 -g3
 CC = c++
-CFLAGS = -Wall -Wextra -Werror -std=c++98
+NAME = webserv
+FILES = main.cpp Http_server.cpp Server_block.cpp HttpRequest.cpp Server_Conf_Parser.cpp HttpResponse.cpp
+SOURCES = $(addprefix src/, $(FILES))
+OBJECTS = $(SOURCES:.cpp=.o)
 
-FILES = server.cpp HttpRequest.cpp
-OBJS = $(FILES:.cpp=.o)
-NAME = server
+all: $(NAME)
 
-$(NAME): $(OBJS)
-		$(CC) $(CFLAGS) $(OBJS) -o $(NAME)
+$(NAME): $(OBJECTS)
+	$(CC) $(CPPFLAGS) $^ -o $@
 
 %.o: %.cpp
-		$(CC) $(CFLAGS) -c $< -o $@
-
-.PHONY: clean fclean re
+	$(CC) -c $(CPPFLAGS) -o $@ $<
 
 clean:
-		rm -f $(OBJS)
+	rm -rf src/*.o
 
 fclean: clean
-		rm -f $(NAME)
+	$(RM) $(NAME)
+re: fclean all
 
-re: clean fclean $(NAME)
+.PHONY: clean fclean re

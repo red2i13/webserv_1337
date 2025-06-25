@@ -1,9 +1,0 @@
-Step	Action
-1	Read raw request with recv()
-2	Split into: request line, headers, body
-3	Parse request line: method, path+query, version
-4	Validate method and HTTP version
-5	Parse headers into a map
-6	If body expected, read it based on Content-Length
-7	Split request target into path + query
-8	Use method + path to handle the request

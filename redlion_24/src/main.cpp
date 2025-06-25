@@ -14,18 +14,15 @@ int main(int ac, char *av[])
     //parse config file
     (void)ac;
 
-    (void)av;
+    // (void)av;
     // std::vector<ConfigNode> master;
     // size_t index;
     // index = 0;
-    // Server_Conf_Parser ps(av[1]);
-    // ps.read_data();
-    // ps.parse_data(master, index);
-    // exit(2);
 
     //TODO
     //init the server blocks
-    Http_server core;
+    Http_server core(av[1]);
+    core.check_init_http_server();
     core.init_server_blocks();
 
     core.socket_main_loop();

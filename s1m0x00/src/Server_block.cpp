@@ -23,6 +23,7 @@ Server_block::Server_block(){
 	server_ip.sin_family = AF_INET;
 	server_ip.sin_addr.s_addr = INADDR_ANY;
 	server_ip.sin_port = htons(8080);
+	index_flag = false;
 
 }
 
@@ -34,11 +35,12 @@ Server_block::Server_block(std::string name_server, int port){
 	server_ip.sin_family = AF_INET;
 	server_ip.sin_addr.s_addr = INADDR_ANY;
 	server_ip.sin_port = htons(4221);
+	index_flag = false;
 
 }
 
 //paramertized constructor for init ip and port and server name in one go
-// Server_block::Server_block(std::string ip, std::string port,std::vector<std::string> server_names){}
+// Server_block::Server_block(std::string ip, std::string port,std::vector<std::string> server_names, bool index){}
 
 
 //deconstructor for freeing any dynamic allocation

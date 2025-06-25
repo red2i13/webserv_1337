@@ -7,6 +7,7 @@ class Server_block{
 	private:
 		std::vector<std::string> server_names;
 		struct sockaddr_in server_ip;
+		bool index_flag;
 	public:
 		int get_port() const;
 		struct sockaddr_in *get_ip_addr() ;

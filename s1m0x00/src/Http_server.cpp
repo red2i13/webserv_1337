@@ -94,10 +94,10 @@ int Http_server::socket_main_loop(){
                 // std::cout << "Received request:\n" << request << std::endl;
                 handle_get(req, res);
                 std::string response_str = res.to_string();
-                send(c_fd, response_str.c_str(), response_str.length(), 0);
+                send(arr[it_fd].data.fd, response_str.c_str(), response_str.length(), 0);
                 // std::cout << "Received response:\n" << request << std::endl;
                 //delete the file descriptor form epoll instance
-                write(arr[it_fd].data.fd, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 23\r\n\r\nThis website is working" , 89);
+                // write(arr[it_fd].data.fd, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 23\r\n\r\nThis website is working" , 89);
                 close(arr[it_fd].data.fd);
                 epoll_ctl(epfd, EPOLL_CTL_DEL, arr[it_fd].data.fd, &ev);
             }

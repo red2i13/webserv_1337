@@ -23,7 +23,7 @@ void handle_request(HttpRequest &req, HttpResponse &res) {
 std::string HttpResponse::to_string() const{
     std::stringstream response;
 
-    response << version << "" << status_code << "" << status_message << "\r\n";
+    response << version << " " << status_code << " " << status_message << "\r\n";
     for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it)
         response << it->first << ": " << it->second << "\r\n";
     if (headers.find("Content-Length") == headers.end())

@@ -5,8 +5,9 @@ HttpResponse::HttpResponse(): status_code(200), status_message("OK"), version("H
 
 
 void handle_request(HttpRequest &req, HttpResponse &res) {
+    Server_block flag;
     if (req.method == "GET")
-        handle_get(req, res);
+        handle_get(req, res, flag);
     // else if (req.method == "POST")
     //     handle_post(req, res);
     // else if (req.method == "DELETE")
@@ -56,11 +57,7 @@ std::string to_str(int value) {
     return oss.str();
 }
 
-
-#include <sys/stat.h>
-#include <dirent.h>
-
-void handle_get(HttpRequest& req, HttpResponse& res) {
+void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f) {
     std::string path = "./www" + req.target;
 
     struct stat statbuf; //i check if the file or dir exist
@@ -99,13 +96,19 @@ void handle_get(HttpRequest& req, HttpResponse& res) {
             res.set_header("Content-Type", get_mime_type(index_path));
             res.set_body(buffer.str());
             res.set_header("Content-Length", to_str(buffer.str().length()));
-        } else {
+        } 
+        else if (f.index_flag){
             // Assume autoindex is enabled (you can replace this with a config flag)
             std::string listing = generate_directory_listing(path, req.target);
             res.set_status(200, "OK");
             res.set_header("Content-Type", "text/html");
             res.set_body(listing);
             res.set_header("Content-Length", to_str(listing.length()));
+        }
+        else{
+            res.set_status(403, "Forbidden");
+            res.set_header("Content-Type", "text/plain");
+            res.set_body("403 Forbidden");
         }
     } else {
         // Neither file nor dir

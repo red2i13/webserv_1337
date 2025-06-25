@@ -4,6 +4,8 @@
 #include "HttpRequest.hpp"
 #include "Webserv.hpp"
 #include <fstream>
+#include <sys/stat.h>
+#include <dirent.h>
 
 class HttpResponse{
     public :
@@ -20,4 +22,5 @@ class HttpResponse{
 };
 void handle_request(HttpRequest &req, HttpResponse &res);
 void handle_get(HttpRequest& req, HttpResponse& res);
+std::string generate_directory_listing(const std::string& path, const std::string& url_path);
 #endif

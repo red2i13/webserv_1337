@@ -92,7 +92,7 @@ int Http_server::socket_main_loop(){
                     continue;
                 }
                 // std::cout << "Received request:\n" << request << std::endl;
-                handle_get(req, res);
+                handle_request(req, res);
                 std::string response_str = res.to_string();
                 send(arr[it_fd].data.fd, response_str.c_str(), response_str.length(), 0);
                 // std::cout << "Received response:\n" << request << std::endl;

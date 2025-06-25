@@ -57,26 +57,64 @@ std::string to_str(int value) {
 }
 
 
-void handle_get(HttpRequest& req, HttpResponse& res){
-    std::string path = "./www"+ req.target;
-    
-    if (path == "./www/")
-        path = "./www/index.html";
-    std::ifstream file(path.c_str());
-    if (!file.is_open()){
+#include <sys/stat.h>
+#include <dirent.h>
+
+void handle_get(HttpRequest& req, HttpResponse& res) {
+    std::string path = "./www" + req.target;
+
+    struct stat statbuf; //i check if the file or dir exist
+    if (stat(path.c_str(), &statbuf) == -1) {
         res.set_status(404, "Not Found");
         res.set_header("Content-Type", "text/plain");
         res.set_body("404 Not Found");
         return;
     }
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    res.set_status(200, "OK");
-    std::string mime = get_mime_type(path);
-    res.set_header("Content-Type", mime);
-    res.set_body(buffer.str());
-    res.set_header("Content-Length", to_str(buffer.str().length()));
+
+    if (S_ISREG(statbuf.st_mode)) {
+        // It's a file
+        std::ifstream file(path.c_str());
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        res.set_status(200, "OK");
+        std::string mime = get_mime_type(path);
+        res.set_header("Content-Type", mime);
+        res.set_body(buffer.str());
+        res.set_header("Content-Length", to_str(buffer.str().length()));
+    } else if (S_ISDIR(statbuf.st_mode)) {
+        // It's a directory
+        if (!req.target.empty() && req.target[req.target.length() - 1] != '/') {
+            res.set_status(301, "Moved Permanently");
+            res.set_header("Location", req.target + "/");
+            res.set_body("301 Moved Permanently");
+            return;
+        }
+
+        std::string index_path = path + "/index.html";
+        std::ifstream index_file(index_path.c_str());
+        if (index_file.is_open()) {
+            std::stringstream buffer;
+            buffer << index_file.rdbuf();
+            res.set_status(200, "OK");
+            res.set_header("Content-Type", get_mime_type(index_path));
+            res.set_body(buffer.str());
+            res.set_header("Content-Length", to_str(buffer.str().length()));
+        } else {
+            // Assume autoindex is enabled (you can replace this with a config flag)
+            std::string listing = generate_directory_listing(path, req.target);
+            res.set_status(200, "OK");
+            res.set_header("Content-Type", "text/html");
+            res.set_body(listing);
+            res.set_header("Content-Length", to_str(listing.length()));
+        }
+    } else {
+        // Neither file nor dir
+        res.set_status(403, "Forbidden");
+        res.set_header("Content-Type", "text/plain");
+        res.set_body("403 Forbidden");
+    }
 }
+
 
 void HttpResponse::set_status(int code, const std::string& message) {
     this->status_code = code;
@@ -89,4 +127,24 @@ void HttpResponse::set_header(const std::string& key, const std::string& value) 
 
 void HttpResponse::set_body(const std::string& body_content) {
     this->body = body_content;
+}
+
+
+std::string generate_directory_listing(const std::string& path, const std::string& url_path) {
+    DIR* dir = opendir(path.c_str());
+    if (!dir) return "403 Forbidden";
+
+    std::stringstream ss;
+    ss << "<html><body><h1>Index of " << url_path << "</h1><ul>";
+
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != NULL) {
+        std::string name = entry->d_name;
+        if (name == ".") continue;
+        ss << "<li><a href=\"" << name << "\">" << name << "</a></li>";
+    }
+    closedir(dir);
+
+    ss << "</ul></body></html>";
+    return ss.str();
 }

@@ -11,20 +11,15 @@
 
 int main(int ac, char *av[])
 {
-    //parse config file
     (void)ac;
-
-    // (void)av;
-    // std::vector<ConfigNode> master;
-    // size_t index;
-    // index = 0;
-
     //TODO
+    //parse config file
     //init the server blocks
     Http_server core(av[1]);
     core.check_init_http_server();
     core.init_server_blocks();
-
+    core.check_init_http_server();
+    exit(2);
     core.socket_main_loop();
     //start the event loop
     

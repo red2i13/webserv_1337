@@ -128,8 +128,10 @@ Http_server::Http_server(char *ConfigFile){
 
 
 int Http_server::check_init_http_server(){
-    
-
+    for(size_t i = 0; i < master.size() ; i++){
+        std::cout << "master: " << master[0].name << std::endl;
+    }    
+    return(0);
 }
 
 Http_server::~Http_server(){

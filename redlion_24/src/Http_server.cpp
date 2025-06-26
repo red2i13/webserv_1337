@@ -110,6 +110,30 @@ Http_server::Http_server(){
     blocks.push_back(def);
     blocks.push_back(def1);
 }
+
+
+Http_server::Http_server(char *ConfigFile){
+    size_t index;
+
+    index = 0;
+    Server_Conf_Parser ps(ConfigFile);
+    try{
+        ps.read_data();
+        ps.parse_data(master, index);
+    }
+    catch(...){
+        std::cout << "Error while parsing the config file" << std::endl;
+    }
+}
+
+
+int Http_server::check_init_http_server(){
+    for(size_t i = 0; i < master.size() ; i++){
+        std::cout << "master: " << master[0].name << std::endl;
+    }    
+    return(0);
+}
+
 Http_server::~Http_server(){
 
 }

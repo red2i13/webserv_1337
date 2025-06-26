@@ -24,6 +24,8 @@ Server_block::Server_block(){
 	server_ip.sin_addr.s_addr = INADDR_ANY;
 	server_ip.sin_port = htons(8080);
 	index_flag = true;
+	upload_flag = true;
+	upload_path = "./upload";
 
 }
 
@@ -36,6 +38,8 @@ Server_block::Server_block(std::string name_server, int port){
 	server_ip.sin_addr.s_addr = INADDR_ANY;
 	server_ip.sin_port = htons(4221);
 	index_flag = true;
+	upload_flag = true;
+	upload_path = "./upload";
 
 }
 

@@ -1,5 +1,5 @@
 #include "../includes/Http_server.hpp"
-
+#include "../includes/HttpRequest.hpp"
 
 //todo
 //Add multiplexer io model to the while loop
@@ -85,11 +85,16 @@ int Http_server::socket_main_loop(){
                     if (request.find("\r\n\r\n") != std::string::npos)
                     break;
                 }
+                std::cout << "==== RAW REQUEST ====\n" << request << "\n=====================" << std::endl;
                 if (!req.parse(request)) {
                     std::cerr << "Failed to parse!\n";
                     close(arr[it_fd].data.fd);
                     epoll_ctl(epfd, EPOLL_CTL_DEL, arr[it_fd].data.fd, &ev);
                     continue;
+                }
+                std::cout<<req.method<<std::endl;
+                for (std::map<std::string ,std::string>::const_iterator it=req.headers.begin(); it != req.headers.end(); ++it){
+                    std::cout << it->first << " : " << it->second << std::endl;
                 }
                 // std::cout << "Received request:\n" << request << std::endl;
                 handle_request(req, res);
@@ -100,6 +105,7 @@ int Http_server::socket_main_loop(){
                 // write(arr[it_fd].data.fd, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 23\r\n\r\nThis website is working" , 89);
                 close(arr[it_fd].data.fd);
                 epoll_ctl(epfd, EPOLL_CTL_DEL, arr[it_fd].data.fd, &ev);
+                request.clear();
             }
         }
         //****************************************************** */

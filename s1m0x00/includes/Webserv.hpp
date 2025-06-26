@@ -18,4 +18,6 @@
 #include <sys/epoll.h>
 #include <deque>
 #include <cctype>
+#include <unistd.h>
+#include <limits.h>
 #endif

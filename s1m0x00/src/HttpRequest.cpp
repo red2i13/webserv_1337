@@ -1,5 +1,14 @@
 #include "../includes/HttpRequest.hpp"
 
+std::string to_lower(const std::string &str) {
+    std::string result = str;
+    for (size_t i = 0; i < result.size(); ++i) {
+        result[i] = std::tolower(result[i]);
+    }
+    return result;
+}
+
+
 bool HttpRequest::parse(const std::string &raw_request){
     size_t header_end = raw_request.find("\r\n\r\n");
     if (header_end == std::string::npos){
@@ -16,24 +25,32 @@ bool HttpRequest::parse(const std::string &raw_request){
     if (method.empty() || target.empty() || version.empty())
         return false;
     header_part.erase(0, first_crlf + 2);
-    size_t pos = 0;
+    // size_t pos = 0;
 
-    while((pos = header_part.find("\r\n")) != std::string::npos){
-        std::string line = header_part.substr(0, pos);
-        header_part.erase(0, pos + 2);
+    std::stringstream header_stream(header_part);
+    std::string line;
+
+    while (std::getline(header_stream, line)) {
+        // Remove possible \r at end
+        if (!line.empty() && line[line.size() - 1] == '\r')
+            line.erase(line.size() - 1);
+
         if (line.empty())
             break;
-        //extract header key : value
+
         size_t colon = line.find(":");
-        if (colon != std::string::npos){
-            std::string key = trim(line.substr(0, colon)); 
+        if (colon != std::string::npos) {
+            std::string key = trim(line.substr(0, colon));
             std::string value = trim(line.substr(colon + 1));
-            headers[key] = value; 
+            headers[to_lower(key)] = value;
         }
     }
+
     this->body = body_part;
     return (true);
 }
+
+
 
 bool HttpRequest::parse_start_line(){
     size_t first_space = this->start_line.find(' ');

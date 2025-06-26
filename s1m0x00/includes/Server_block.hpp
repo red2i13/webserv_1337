@@ -9,6 +9,8 @@ class Server_block{
 		struct sockaddr_in server_ip;
 	public:
 		bool index_flag;
+		bool upload_flag;
+		std::string upload_path;
 		int get_port() const;
 		struct sockaddr_in *get_ip_addr() ;
 		std::vector<std::string> get_Snames() const;

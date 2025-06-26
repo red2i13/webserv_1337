@@ -8,8 +8,8 @@ void handle_request(HttpRequest &req, HttpResponse &res) {
     Server_block flag;
     if (req.method == "GET")
         handle_get(req, res, flag);
-    // else if (req.method == "POST")
-    //     handle_post(req, res);
+    else if (req.method == "POST")
+        handle_post(req, res, flag);
     // else if (req.method == "DELETE")
     //     handle_delete(req, res);
     else {
@@ -150,4 +150,78 @@ std::string generate_directory_listing(const std::string& path, const std::strin
 
     ss << "</ul></body></html>";
     return ss.str();
+}
+
+void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
+    if (!f.upload_flag)
+    {
+        res.set_status(403, "Forbidden");
+        res.set_header("Content-Type", "text/plain");
+        res.set_body("403 Forbidden: Upload not allowed.");
+        return;
+    }
+    std::string body_data;
+
+    if (req.headers.count("content-length"))
+    {
+        size_t content_length = atoi(req.headers["content-length"].c_str());
+        body_data = req.body.substr(0, content_length);
+    } 
+    else if (req.headers.count("transfer-encoding") && req.headers["transfer-encoding"] == "chunked")
+    {
+        body_data = decode_chunked_body(req.body);
+        if (body_data.empty())
+        {
+            res.set_status(400, "Bad Request");
+            res.set_body("Chunked data malformed.");
+            return;
+        }
+    }
+    else
+    {
+        res.set_status(411, "Length Required");
+        res.set_header("Content-Type", "text/plain");
+        res.set_body("411 Length Required");
+        return;
+    }
+    char cwd[PATH_MAX];
+    if (getcwd(cwd, sizeof(cwd)) != 0) {
+        f.upload_path = cwd;
+    }
+    std::string filename = "upload.txt";
+    std::string full_path = f.upload_path + "/" + filename;
+    std::ofstream file(full_path.c_str(), std::ios::binary);//after reda work
+    if (!file) {
+        res.set_status(500, "Internal Server Error");
+        res.set_body("Could not save the file.");
+        return;
+    }
+
+    file << body_data;
+    file.close();
+
+    res.set_status(201, "Created");
+    res.set_header("Content-Type", "text/plain");
+    res.set_body("Upload successful");
+}
+
+std::string decode_chunked_body(const std::string& raw) {
+    std::stringstream input(raw);
+    std::string decoded;
+    std::string line;
+
+    while (std::getline(input, line)) {
+        size_t chunk_size = std::strtoul(line.c_str(), 0, 16);
+        if (chunk_size == 0)
+            break;
+
+        char* buffer = new char[chunk_size];
+        input.read(buffer, chunk_size);
+        decoded.append(buffer, chunk_size);
+        delete[] buffer;
+
+        input.ignore(2); // skip \r\n after chunk
+    }
+
+    return decoded;
 }

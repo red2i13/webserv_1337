@@ -8,7 +8,6 @@ int Server_Conf_Parser::read_data(){
 	while (getline(file , line))
 	{
 		f.push_back(line);
-		std::cout << line << std::endl;
 	}
 	if(file.bad())
 		return(1);
@@ -102,7 +101,6 @@ int Server_Conf_Parser::parse_data(	std::vector<ConfigNode> &parent, size_t &i){
 			if(tokens.back()[tokens.back().size() - 1] == '{'){
 				//remove the brace
 				tokens.pop_back();
-				std::cout << tokens[0] << std::endl;
 				i++;
 				parse_data(node.children, i);
 			}
@@ -111,7 +109,6 @@ int Server_Conf_Parser::parse_data(	std::vector<ConfigNode> &parent, size_t &i){
 
 			if(tokens.back()[tokens.back().size() - 1] == ';'){
 				tokens.back().erase(tokens.back().size() - 1);
-				std::cout << "Check removing the semicolon" << tokens.back() << std::endl;
 			}
 		}
 		if(tokens.size() > 1)

@@ -128,8 +128,31 @@ Http_server::Http_server(char *ConfigFile){
 
 
 int Http_server::check_init_http_server(){
+    std::vector<ConfigNode> *ptr;
+    std::vector<ConfigNode> *n_dir;
+    
+
     for(size_t i = 0; i < master.size() ; i++){
-        std::cout << "master: " << master[0].name << std::endl;
+        if(master[i].name == "http"){
+            ptr = &master[i].children;
+            for(size_t j = 0; j < ptr->size() ; j++){
+                if((*ptr)[j].name == "server")
+                {
+                    Server_block new_svb = new Server_block()
+                    n_dir = &(*ptr)[j].children;
+                    for(size_t k = 0; k < (*n_dir).size(); k++){
+                        if((*n_dir)[k].name == "server_name")
+                            new_svb.set_sname((*n_dir)[k].values);
+                        else  if((*n_dir)[k].name == "error_page")
+                            new_svb.set_err_pages((*n_dir)[k].values);
+                            else  if((*n_dir)[k].name == "listen")
+                            //todo listen block
+                        
+
+                    }
+                }
+            }
+        }
     }    
     return(0);
 }

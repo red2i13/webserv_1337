@@ -10,8 +10,8 @@ void handle_request(HttpRequest &req, HttpResponse &res) {
         handle_get(req, res, flag);
     else if (req.method == "POST")
         handle_post(req, res, flag);
-    // else if (req.method == "DELETE")
-    //     handle_delete(req, res);
+    else if (req.method == "DELETE")
+        handle_delete(req, res);
     else {
         res.set_status(405, "Method Not Allowed");
         res.set_header("Content-Type", "text/plain");
@@ -225,3 +225,50 @@ std::string decode_chunked_body(const std::string& raw) {
 
     return decoded;
 }
+
+void handle_delete(HttpRequest &req, HttpResponse &res) {
+    std::string path = "www" + req.target;
+
+    struct stat s;
+    if (stat(path.c_str(), &s) != 0) {
+        res.set_status(404, "Not Found");
+        res.set_body("404 Not Found");
+        return;
+    }
+
+    if (S_ISREG(s.st_mode)) {
+        if (unlink(path.c_str()) != 0) {
+            res.set_status(500, "Internal Server Error");
+            res.set_body("500 Internal Server Error");
+            return;
+        }
+        res.set_status(204, "No Content"); // File deleted
+        return;
+    }
+
+    if (S_ISDIR(s.st_mode)) {
+        // URI must end with a slash for directories
+        if (req.target.empty() || req.target[req.target.size() - 1] != '/') {
+            res.set_status(409, "Conflict");
+            res.set_body("409 Conflict: URI must end with '/' for directories");
+            return;
+        }
+        if (access(path.c_str(), W_OK) != 0) {
+            res.set_status(403, "Forbidden");
+            res.set_body("403 Forbidden: No write permission");
+            return;
+        }
+        if (rmdir(path.c_str()) != 0) {
+            res.set_status(500, "Internal Server Error");
+            res.set_body("500 Internal Server Error: Failed to delete directory");
+            return;
+        }
+        res.set_status(204, "No Content"); // Dir deleted
+        return;
+    }
+
+    res.set_status(500, "Internal Server Error");
+    res.set_body("500 Internal Server Error: Unknown file type");
+}
+
+

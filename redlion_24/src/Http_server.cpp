@@ -138,18 +138,24 @@ int Http_server::check_init_http_server(){
             for(size_t j = 0; j < ptr->size() ; j++){
                 if((*ptr)[j].name == "server")
                 {
-                    Server_block new_svb = new Server_block()
+                    Server_block *new_svb = new Server_block();
                     n_dir = &(*ptr)[j].children;
                     for(size_t k = 0; k < (*n_dir).size(); k++){
                         if((*n_dir)[k].name == "server_name")
-                            new_svb.set_sname((*n_dir)[k].values);
+                            new_svb->set_sname((*n_dir)[k].values);
                         else  if((*n_dir)[k].name == "error_page")
-                            new_svb.set_err_pages((*n_dir)[k].values);
-                            else  if((*n_dir)[k].name == "listen")
-                            //todo listen block
-                        
-
+                            new_svb->set_err_pages((*n_dir)[k].values);
+                        else  if((*n_dir)[k].name == "listen")
+                            new_svb->set_ip_host((*n_dir)[k].values);
+                        else  if((*n_dir)[k].name == "location")
+                        {
+                            std::cout  << "test location "<< ((*n_dir)[k].values)[0] << std::endl;
+                            new_svb->set_location((*n_dir)[k].values[0], (*n_dir)[k].children[0].values);
+                        }
+                        else if((*n_dir)[k].name == "autoindex")
+                            new_svb->set_dir_listen((*n_dir)[k].values[0] == "on");
                     }
+                    blocks.push_back(new_svb);
                 }
             }
         }

@@ -21,6 +21,7 @@ class Server_block{
 		void set_err_pages(std::vector <std::string> &list);
 		void set_ip_host(std::vector <std::string> &vect);
 		void set_location(std::string directory, std::vector <std::string> &list);
+		void set_upload_path(std::vector<std::string> &list) ;
 		Server_block();
 		Server_block(std::string name_server, int port);
 		Server_block(std::string ip, std::string port,std::vector<std::string> server_names);

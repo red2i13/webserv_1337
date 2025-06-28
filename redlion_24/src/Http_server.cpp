@@ -154,6 +154,8 @@ int Http_server::check_init_http_server(){
                         }
                         else if((*n_dir)[k].name == "autoindex")
                             new_svb->set_dir_listen((*n_dir)[k].values[0] == "on");
+                        else if((*n_dir)[k].name == "post_dir")
+                            new_svb->upload_path = (*n_dir)[k].values[0];
                     }
                     blocks.push_back(new_svb);
                 }

@@ -94,11 +94,19 @@ void Server_block::set_location(std::string directory, std::vector <std::string>
 	if(list.size() > 0){
 		std::string loc = directory;
 		location_blocks[loc] = std::vector<std::string>();
-		for(size_t i = 1; i < list.size(); i++){
+		for(size_t i = 0; i < list.size(); i++){
 			location_blocks[loc].push_back(list[i]);
 		}
 	}
 	else{
 		std::cout << "Invalid location, using default location" << std::endl;
+	}
+}
+
+void Server_block::set_upload_path(std::vector<std::string> &list) {
+	if (list.size() == 1) {
+		upload_path = list[0];
+	} else {
+		std::cout << "Invalid upload path, using default path" << std::endl;
 	}
 }

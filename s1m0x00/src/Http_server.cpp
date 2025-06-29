@@ -106,6 +106,8 @@ int Http_server::socket_main_loop(){
                 close(arr[it_fd].data.fd);
                 epoll_ctl(epfd, EPOLL_CTL_DEL, arr[it_fd].data.fd, &ev);
                 request.clear();
+                req = HttpRequest(); // Reset to fresh object
+                res = HttpResponse(); // Reset to fresh object
             }
         }
         //****************************************************** */

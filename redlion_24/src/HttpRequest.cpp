@@ -1,5 +1,14 @@
 #include "../includes/HttpRequest.hpp"
 
+std::string to_lower(const std::string &str) {
+    std::string result = str;
+    for (size_t i = 0; i < result.size(); ++i) {
+        result[i] = std::tolower(result[i]);
+    }
+    return result;
+}
+
+
 bool HttpRequest::parse(const std::string &raw_request){
     size_t header_end = raw_request.find("\r\n\r\n");
     if (header_end == std::string::npos){
@@ -28,7 +37,7 @@ bool HttpRequest::parse(const std::string &raw_request){
         if (colon != std::string::npos){
             std::string key = trim(line.substr(0, colon)); 
             std::string value = trim(line.substr(colon + 1));
-            headers[key] = value; 
+            headers[to_lower(key)] = value; 
         }
     }
     this->body = body_part;

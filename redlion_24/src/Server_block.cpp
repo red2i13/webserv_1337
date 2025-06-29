@@ -23,7 +23,7 @@ Server_block::Server_block(){
 	server_ip.sin_addr.s_addr = INADDR_ANY;
 	server_ip.sin_port = htons(8080);
 	index_flag = false;
-	upload_path = "./uploads"; // Default upload path
+	upload_flag = false;
 }
 
 Server_block::Server_block(std::string name_server, int port){
@@ -35,7 +35,7 @@ Server_block::Server_block(std::string name_server, int port){
 	server_ip.sin_addr.s_addr = INADDR_ANY;
 	server_ip.sin_port = htons(4221);
 	index_flag = false;
-	upload_path = "./uploads"; // Default upload path
+	upload_flag = false;
 }
 
 void  Server_block::set_sname(std::vector <std::string> &vect){
@@ -104,6 +104,8 @@ void Server_block::set_location(std::string directory, std::vector <std::string>
 }
 
 void Server_block::set_upload_path(std::vector<std::string> &list) {
+	std::cout << "I AM HERE\n"; 	
+	upload_flag = true;
 	if (list.size() == 1) {
 		upload_path = list[0];
 	} else {

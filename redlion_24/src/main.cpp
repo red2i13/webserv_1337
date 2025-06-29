@@ -18,7 +18,6 @@ int main(int ac, char *av[])
     Http_server core(av[1]);
     core.check_init_http_server();
     core.init_server_blocks();
-    exit(2);
     core.socket_main_loop();
     //start the event loop
     

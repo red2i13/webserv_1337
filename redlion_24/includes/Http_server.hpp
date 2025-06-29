@@ -5,6 +5,7 @@
 #include "Server_block.hpp"
 #include "HttpRequest.hpp"
 #include "Server_Conf_Parser.hpp"
+#include "HttpResponse.hpp"
 
 class Http_server{
     private:
@@ -14,6 +15,7 @@ class Http_server{
         std::vector<int> socket_fds;
         std::vector<Server_block*> blocks;
         HttpRequest req;
+        HttpResponse res;
         std::string request;
 
     public:

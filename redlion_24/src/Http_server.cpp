@@ -53,6 +53,7 @@ int Http_server::socket_main_loop(){
         perror("Error epoll: ");
         return(1);
     }
+    std::map<int, int> fd_block_map;
     //add fd of every listening server to the epoll
     for(size_t it_block = 0 ; it_block < blocks.size(); it_block++){
         ev.data.fd = socket_fds[it_block];
@@ -68,6 +69,14 @@ int Http_server::socket_main_loop(){
             if(checkIfListen(arr[it_fd].data.fd))
             {
                 c_fd = accept(arr[it_fd].data.fd, reinterpret_cast<struct sockaddr *>(&c_addr), reinterpret_cast<socklen_t*>(&len_c_addr));
+                int block_index = -1;
+                for(size_t i = 0; i < socket_fds.size(); i++) {
+                    if(socket_fds[i] == arr[it_fd].data.fd) {
+                        block_index = i;
+                        break;
+                    }
+                }                
+                fd_block_map[c_fd] = block_index;
                 if(c_fd != -1)
                 std::cout << "Client connected succesfuly c_fd value: " << c_fd <<  std::endl; 
                 //adding client fd to epoll insantnce
@@ -85,17 +94,27 @@ int Http_server::socket_main_loop(){
                     if (request.find("\r\n\r\n") != std::string::npos)
                     break;
                 }
-                if (!req.parse(request))
-                {
-                    std::cerr<<"Failed to parse !\n";
-                    return 1;
+                if (!req.parse(request)) {
+                    std::cerr << "Failed to parse!\n";
+                    close(arr[it_fd].data.fd);
+                    epoll_ctl(epfd, EPOLL_CTL_DEL, arr[it_fd].data.fd, &ev);
+                    continue;
                 }
                 
-                std::cout << "Received request:\n" << request << std::endl;
+                std::cout << "=====================Received request:\n" << request << "===================="<<std::endl;
+                for (std::map<std::string ,std::string>::const_iterator it=req.headers.begin(); it != req.headers.end(); ++it){
+                    std::cout << it->first << " : " << it->second << std::endl;
+                }
                 //delete the file descriptor form epoll instance
-                write(arr[it_fd].data.fd, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 23\r\n\r\nThis website is working" , 89);
+                // write(arr[it_fd].data.fd, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 23\r\n\r\nThis website is working" , 89);
+                handle_request(req, res, *blocks[fd_block_map[arr[it_fd].data.fd]]);
+                std::string response_str = res.to_string();
+                send(arr[it_fd].data.fd, response_str.c_str(), response_str.length(), 0);
                 close(arr[it_fd].data.fd);
                 epoll_ctl(epfd, EPOLL_CTL_DEL, arr[it_fd].data.fd, &ev);
+                request.clear();
+                res = HttpResponse();
+                req = HttpRequest();
             }
         }
         //****************************************************** */
@@ -155,7 +174,7 @@ int Http_server::check_init_http_server(){
                         else if((*n_dir)[k].name == "autoindex")
                             new_svb->set_dir_listen((*n_dir)[k].values[0] == "on");
                         else if((*n_dir)[k].name == "post_dir")
-                            new_svb->upload_path = (*n_dir)[k].values[0];
+                            new_svb->set_upload_path((*n_dir)[k].values);
                     }
                     blocks.push_back(new_svb);
                 }

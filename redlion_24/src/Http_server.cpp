@@ -87,13 +87,17 @@ int Http_server::socket_main_loop(){
             else
             {
                 //************parse the request here med part***************
-                char buffer[1024];
+                char buffer[2048];
                 ssize_t bytes;
                 while ((bytes = recv(arr[it_fd].data.fd, buffer, sizeof(buffer), 0)) > 0) {
                     request.append(buffer, bytes);
                     if (request.find("\r\n\r\n") != std::string::npos)
-                    break;
+                    {
+                        break;
+                    }
                 }
+                std::cout << "==== RAW REQUEST ====\n" << request << "\n=====================" << std::endl;
+
                 if (!req.parse(request)) {
                     std::cerr << "Failed to parse!\n";
                     close(arr[it_fd].data.fd);
@@ -101,10 +105,6 @@ int Http_server::socket_main_loop(){
                     continue;
                 }
                 
-                std::cout << "=====================Received request:\n" << request << "===================="<<std::endl;
-                for (std::map<std::string ,std::string>::const_iterator it=req.headers.begin(); it != req.headers.end(); ++it){
-                    std::cout << it->first << " : " << it->second << std::endl;
-                }
                 //delete the file descriptor form epoll instance
                 // write(arr[it_fd].data.fd, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 23\r\n\r\nThis website is working" , 89);
                 handle_request(req, res, *blocks[fd_block_map[arr[it_fd].data.fd]]);

@@ -30,14 +30,20 @@ bool HttpRequest::parse(const std::string &raw_request){
     while((pos = header_part.find("\r\n")) != std::string::npos){
         std::string line = header_part.substr(0, pos);
         header_part.erase(0, pos + 2);
-        if (line.empty())
-            break;
         //extract header key : value
         size_t colon = line.find(":");
         if (colon != std::string::npos){
             std::string key = trim(line.substr(0, colon)); 
             std::string value = trim(line.substr(colon + 1));
             headers[to_lower(key)] = value; 
+        }
+    }
+    if (!header_part.empty()) {
+        size_t colon = header_part.find(":");
+        if (colon != std::string::npos) {
+            std::string key = trim(header_part.substr(0, colon)); 
+            std::string value = trim(header_part.substr(colon + 1));
+            headers[to_lower(key)] = value;
         }
     }
     this->body = body_part;

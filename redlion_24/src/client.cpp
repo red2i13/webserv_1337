@@ -26,8 +26,9 @@ int main() {
         "Host: localhost:8080\r\n"
         "User-Agent: MiniClient/1.0\r\n"
         "Content-Type: text/plain\r\n"
+        "Transfer-Encoding: chunked\r\n"
         "\r\n"
-        "zz\r\n"         // Invalid chunk size (should be hex)
+        "1\r\n"         // Invalid chunk size (should be hex)
         "Hello World\r\n"
         "0\r\n"
         "\r\n";

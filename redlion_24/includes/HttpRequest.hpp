@@ -5,6 +5,7 @@
 #include <string>
 #include <stdbool.h>
 #include <cstdlib>
+#include <sstream>
 #include <map>
 
 class HttpRequest{

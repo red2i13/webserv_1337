@@ -28,6 +28,9 @@ class Http_server{
     int check_init_http_server();
     int socket_main_loop();
     int checkIfListen(int fd);
+    class ParsingFails : public std::exception{
+		virtual const char* what() const throw();
+	};
 };
 
 #endif

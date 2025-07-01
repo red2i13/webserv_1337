@@ -132,17 +132,18 @@ Http_server::Http_server(){
 
 
 Http_server::Http_server(char *ConfigFile){
+    if(!ConfigFile)
+        throw 1;
     size_t index;
 
+    //open a file error.log and specify the date of the error and whats the problem
     index = 0;
     Server_Conf_Parser ps(ConfigFile);
-    try{
-        ps.read_data();
-        ps.parse_data(master, index);
-    }
-    catch(...){
-        std::cout << "Error while parsing the config file" << std::endl;
-    }
+
+    if(ps.read_data())
+        throw ParsingFails();
+    ps.parse_data(master, index);
+  
 }
 
 

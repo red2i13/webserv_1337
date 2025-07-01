@@ -125,7 +125,12 @@ int Server_Conf_Parser::parse_data(	std::vector<ConfigNode> &parent, size_t &i){
 }
 
 
-Server_Conf_Parser::Server_Conf_Parser(){}
+Server_Conf_Parser::Server_Conf_Parser(){
+	file_name = "webserv.conf";
+}
+Server_Conf_Parser::~Server_Conf_Parser(){}
 Server_Conf_Parser::Server_Conf_Parser(std::string file_path){
+	if(file_path.empty())
+		file_name = "webserv.conf";
 	file_name = file_path;
 }

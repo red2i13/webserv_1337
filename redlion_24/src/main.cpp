@@ -11,14 +11,22 @@
 
 int main(int ac, char *av[])
 {
-    (void)ac;
-    //TODO
-    //parse config file
-    //init the server blocks
+    try{
     Http_server core(av[1]);
     core.check_init_http_server();
     core.init_server_blocks();
     core.socket_main_loop();
+    }
+    catch(int num)
+    {
+        std::cerr << "Webserv: file for config not found" << std::endl;
+    }
+    catch (std::exception &e){
+
+    }
+    catch(...){
+        std::cout << "Error while parsing the config file" << std::endl;
+    }
     //start the event loop
     
 }

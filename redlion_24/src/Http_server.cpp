@@ -104,7 +104,12 @@ int Http_server::socket_main_loop(){
                     epoll_ctl(epfd, EPOLL_CTL_DEL, arr[it_fd].data.fd, &ev);
                     continue;
                 }
-                
+                if (req.target == "/cgi-bin")
+                {
+                    req.cgi_flag = true;
+                    //function cgi dial adnan
+                }
+
                 //delete the file descriptor form epoll instance
                 // write(arr[it_fd].data.fd, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 23\r\n\r\nThis website is working" , 89);
                 handle_request(req, res, *blocks[fd_block_map[arr[it_fd].data.fd]]);

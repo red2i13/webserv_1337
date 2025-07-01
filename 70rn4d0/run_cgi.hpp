@@ -1,5 +1,4 @@
-#ifndef MINI_SERV
-#define MINI_SERV
+#pragma once
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <iostream>
@@ -8,8 +7,3 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-
-
-void write_error_message(int errnum);
-
-#endif

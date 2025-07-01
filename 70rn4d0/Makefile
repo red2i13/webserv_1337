@@ -1,7 +1,7 @@
 CXX=c++
 CXXFLAGS=-Wall -Wextra -Werror -std=c++98
-OBJ= miniserv.o utils.o
-NAME=serv
+OBJ= run_cgi.o
+NAME=cgi
 
 all:$(NAME)
 

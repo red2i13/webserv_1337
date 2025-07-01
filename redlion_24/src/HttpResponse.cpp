@@ -61,6 +61,7 @@ std::string to_str(int value) {
 
 void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f) {
     std::string path = "./www" + req.target;
+
     struct stat statbuf; //i check if the file or dir exist
     if (stat(path.c_str(), &statbuf) == -1) {
         res.set_status(404, "Not Found");
@@ -230,8 +231,7 @@ std::string decode_chunked_body(const std::string& raw) {
 }
 
 void handle_delete(HttpRequest &req, HttpResponse &res) {
-    std::string path = "www" + req.target;
-
+    std::string path = "./www" + req.target;
     struct stat s;
     if (stat(path.c_str(), &s) != 0) {
         res.set_status(404, "Not Found");

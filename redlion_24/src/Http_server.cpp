@@ -40,6 +40,17 @@ int Http_server::checkIfListen(int fd){
  const char* Http_server::ParsingFails::what() const throw(){
     return("Error in parsing of the config file\n");
 }
+int Http_server::get_block_id(int fd){
+    int block_index = -1;
+    for(size_t i = 0; i < socket_fds.size(); i++) {
+        if(socket_fds[i] == fd) {
+
+            block_index = i;
+            break;
+        }
+    }   
+    return(block_index);
+}
 
 int Http_server::socket_main_loop(){
     int c_fd;
@@ -50,42 +61,37 @@ int Http_server::socket_main_loop(){
     //note tune the max event to optimize the server when there is to much traffic
     struct epoll_event ev;
     int MAX_EVENT = 64;
-    struct epoll_event arr[MAX_EVENT];
+    struct epoll_event events[MAX_EVENT];
     int epfd = epoll_create(1);
     if(epfd < 0){
         perror("Error epoll: ");
         return(1);
     }
     std::map<int, int> fd_block_map;
+    std::map<int , int> block_num;
     //add fd of every listening server to the epoll
     for(size_t it_block = 0 ; it_block < blocks.size(); it_block++){
         ev.data.fd = socket_fds[it_block];
-        ev.events = EPOLLIN;
+        ev.events = EPOLLIN ;
         if(epoll_ctl(epfd, EPOLL_CTL_ADD, socket_fds[it_block], &ev) == -1)
             throw 2;
+        block_num[socket_fds[it_block]] = it_block;
 
     }
     for(;;){
-        int ready_fd = epoll_wait(epfd, arr, MAX_EVENT, -1);
+        int ready_fd = epoll_wait(epfd, events, MAX_EVENT, -1);
         std::cout << "num of ready fds " << ready_fd << std::endl;
         for(int it_fd = 0; it_fd < ready_fd; it_fd++)
         {
-            if(checkIfListen(arr[it_fd].data.fd))
+            if(checkIfListen(events[it_fd].data.fd))
             {
-                c_fd = accept(arr[it_fd].data.fd, reinterpret_cast<struct sockaddr *>(&c_addr), reinterpret_cast<socklen_t*>(&len_c_addr));
-                int block_index = -1;
-                for(size_t i = 0; i < socket_fds.size(); i++) {
-                    if(socket_fds[i] == arr[it_fd].data.fd) {
-                        block_index = i;
-                        break;
-                    }
-                }                
-                fd_block_map[c_fd] = block_index;
+                c_fd = accept(events[it_fd].data.fd, reinterpret_cast<struct sockaddr *>(&c_addr), reinterpret_cast<socklen_t*>(&len_c_addr));      
+                fd_block_map[c_fd] = block_num[events[it_fd].data.fd];
                 if(c_fd != -1)
-                std::cout << "Client connected succesfuly c_fd value: " << c_fd <<  std::endl; 
+                    std::cout << "Client connected succesfuly c_fd value: " << c_fd <<  std::endl; 
                 //adding client fd to epoll insantnce
                 ev.data.fd = c_fd;
-                ev.events = EPOLLIN;
+                ev.events = EPOLLIN | EPOLLOUT;
                 epoll_ctl(epfd, EPOLL_CTL_ADD, c_fd, &ev);
             }
             else
@@ -93,37 +99,42 @@ int Http_server::socket_main_loop(){
                 //************parse the request here med part***************
                 char buffer[2048];
                 ssize_t bytes;
-                while ((bytes = recv(arr[it_fd].data.fd, buffer, sizeof(buffer), 0)) > 0) {
-                    request.append(buffer, bytes);
-                    if (request.find("\r\n\r\n") != std::string::npos)
-                    {
-                        break;
+                // if(events[it_fd].events & EPOLLIN){
+
+                    while ((bytes = recv(events[it_fd].data.fd, buffer, sizeof(buffer), 0)) > 0) {
+                        request.append(buffer, bytes);
+                        if (request.find("\r\n\r\n") != std::string::npos)
+                        {
+                            break;
+                        }
                     }
-                }
+                // }
                 std::cout << "==== RAW REQUEST ====\n" << request << "\n=====================" << std::endl;
+                if(events[it_fd].events & EPOLLOUT){
 
-                if (!req.parse(request)) {
-                    std::cerr << "Failed to parse!\n";
-                    close(arr[it_fd].data.fd);
-                    epoll_ctl(epfd, EPOLL_CTL_DEL, arr[it_fd].data.fd, &ev);
-                    continue;
+                    if (!req.parse(request)) {
+                        std::cerr << "Failed to parse!\n";
+                        close(events[it_fd].data.fd);
+                        epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
+                        continue;
+                    }
+                    if (req.target == "/cgi-bin")
+                    {
+                        req.cgi_flag = true;
+                        //function cgi dial adnan
+                    }
+                    
+                    //delete the file descriptor form epoll instance
+                    // write(events[it_fd].data.fd, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 23\r\n\r\nThis website is working" , 89);
+                    handle_request(req, res, *blocks[fd_block_map[events[it_fd].data.fd]]);
+                    std::string response_str = res.to_string();
+                    send(events[it_fd].data.fd, response_str.c_str(), response_str.length(), 0);
+                    close(events[it_fd].data.fd);
+                    epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
+                    request.clear();
+                    res = HttpResponse();
+                    req = HttpRequest();
                 }
-                if (req.target == "/cgi-bin")
-                {
-                    req.cgi_flag = true;
-                    //function cgi dial adnan
-                }
-
-                //delete the file descriptor form epoll instance
-                // write(arr[it_fd].data.fd, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 23\r\n\r\nThis website is working" , 89);
-                handle_request(req, res, *blocks[fd_block_map[arr[it_fd].data.fd]]);
-                std::string response_str = res.to_string();
-                send(arr[it_fd].data.fd, response_str.c_str(), response_str.length(), 0);
-                close(arr[it_fd].data.fd);
-                epoll_ctl(epfd, EPOLL_CTL_DEL, arr[it_fd].data.fd, &ev);
-                request.clear();
-                res = HttpResponse();
-                req = HttpRequest();
             }
         }
         //****************************************************** */
@@ -195,5 +206,5 @@ int Http_server::check_init_http_server(){
 }
 
 Http_server::~Http_server(){
-
+    blocks.clear();
 }

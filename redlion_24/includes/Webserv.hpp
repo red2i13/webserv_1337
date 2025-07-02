@@ -20,4 +20,6 @@
 #include <cctype>
 #include <map>
 #include <cstdlib>
+#include <queue>
+
 #endif

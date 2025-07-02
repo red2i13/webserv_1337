@@ -10,6 +10,7 @@ class Server_block{
 		std::map<std::string, std::vector<std::string> > location_blocks;
 		std::vector<std::string> error_pages;
 		struct sockaddr_in server_ip;
+		int timeout;
 	public:
 		bool upload_flag;
 		bool index_flag;

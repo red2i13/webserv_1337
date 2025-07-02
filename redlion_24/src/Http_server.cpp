@@ -37,6 +37,9 @@ int Http_server::checkIfListen(int fd){
     }
     return(0);
 }
+ const char* Http_server::ParsingFails::what() const throw(){
+    return("Error in parsing of the config file\n");
+}
 
 int Http_server::socket_main_loop(){
     int c_fd;
@@ -58,7 +61,8 @@ int Http_server::socket_main_loop(){
     for(size_t it_block = 0 ; it_block < blocks.size(); it_block++){
         ev.data.fd = socket_fds[it_block];
         ev.events = EPOLLIN;
-        epoll_ctl(epfd, EPOLL_CTL_ADD, socket_fds[it_block], &ev);
+        if(epoll_ctl(epfd, EPOLL_CTL_ADD, socket_fds[it_block], &ev) == -1)
+            throw 2;
 
     }
     for(;;){
@@ -146,6 +150,7 @@ Http_server::Http_server(char *ConfigFile){
     Server_Conf_Parser ps(ConfigFile);
 
     if(ps.read_data())
+        // throw(4);
         throw ParsingFails();
     ps.parse_data(master, index);
   
@@ -174,7 +179,6 @@ int Http_server::check_init_http_server(){
                             new_svb->set_ip_host((*n_dir)[k].values);
                         else  if((*n_dir)[k].name == "location")
                         {
-                            std::cout  << "test location "<< ((*n_dir)[k].values)[0] << std::endl;
                             new_svb->set_location((*n_dir)[k].values[0], (*n_dir)[k].children[0].values);
                         }
                         else if((*n_dir)[k].name == "autoindex")

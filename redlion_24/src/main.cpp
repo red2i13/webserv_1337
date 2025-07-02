@@ -11,6 +11,7 @@
 
 int main(int ac, char *av[])
 {
+    (void)ac;
     try{
     Http_server core(av[1]);
     core.check_init_http_server();
@@ -22,7 +23,7 @@ int main(int ac, char *av[])
         std::cerr << "Webserv: file for config not found" << std::endl;
     }
     catch (std::exception &e){
-
+        std::cout << "exception starts" << std::endl;
     }
     catch(...){
         std::cout << "Error while parsing the config file" << std::endl;

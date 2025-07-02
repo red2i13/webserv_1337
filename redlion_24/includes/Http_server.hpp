@@ -19,17 +19,17 @@ class Http_server{
         std::string request;
 
     public:
-    Http_server();
-    Http_server(char *configFile);
-    ~Http_server();
-    // Http_server(const Http_server &obj);
-    // Http_server & operator=(const Http_server &obj);
-    int init_server_blocks();
-    int check_init_http_server();
-    int socket_main_loop();
-    int checkIfListen(int fd);
-    class ParsingFails : public std::exception{
-		virtual const char* what() const throw();
+        Http_server();
+        Http_server(char *configFile);
+        ~Http_server();
+        // Http_server(const Http_server &obj);
+        // Http_server & operator=(const Http_server &obj);
+        int init_server_blocks();
+        int check_init_http_server();
+        int socket_main_loop();
+        int checkIfListen(int fd);
+        class ParsingFails : public std::exception{
+            virtual const char* what() const throw();
 	};
 };
 

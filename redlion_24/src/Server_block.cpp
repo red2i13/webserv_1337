@@ -104,7 +104,6 @@ void Server_block::set_location(std::string directory, std::vector <std::string>
 }
 
 void Server_block::set_upload_path(std::vector<std::string> &list) {
-	std::cout << "I AM HERE\n"; 	
 	upload_flag = true;
 	if (list.size() == 1) {
 		upload_path = list[0];

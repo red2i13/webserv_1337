@@ -11,8 +11,6 @@ int Server_Conf_Parser::read_data(){
 	}
 	if(file.bad())
 		return(1);
-	if(file.fail())
-		return(1);
 	return(0);
 }
 /*

@@ -8,11 +8,8 @@ int Server_Conf_Parser::read_data(){
 	while (getline(file , line))
 	{
 		f.push_back(line);
-		std::cout << line << std::endl;
 	}
 	if(file.bad())
-		return(1);
-	if(file.fail())
 		return(1);
 	return(0);
 }
@@ -102,7 +99,6 @@ int Server_Conf_Parser::parse_data(	std::vector<ConfigNode> &parent, size_t &i){
 			if(tokens.back()[tokens.back().size() - 1] == '{'){
 				//remove the brace
 				tokens.pop_back();
-				std::cout << tokens[0] << std::endl;
 				i++;
 				parse_data(node.children, i);
 			}
@@ -111,7 +107,6 @@ int Server_Conf_Parser::parse_data(	std::vector<ConfigNode> &parent, size_t &i){
 
 			if(tokens.back()[tokens.back().size() - 1] == ';'){
 				tokens.back().erase(tokens.back().size() - 1);
-				std::cout << "Check removing the semicolon" << tokens.back() << std::endl;
 			}
 		}
 		if(tokens.size() > 1)
@@ -128,7 +123,12 @@ int Server_Conf_Parser::parse_data(	std::vector<ConfigNode> &parent, size_t &i){
 }
 
 
-Server_Conf_Parser::Server_Conf_Parser(){}
+Server_Conf_Parser::Server_Conf_Parser(){
+	file_name = "webserv.conf";
+}
+Server_Conf_Parser::~Server_Conf_Parser(){}
 Server_Conf_Parser::Server_Conf_Parser(std::string file_path){
+	if(file_path.empty())
+		file_name = "webserv.conf";
 	file_name = file_path;
 }

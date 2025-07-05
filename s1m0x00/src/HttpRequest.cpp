@@ -1,5 +1,7 @@
 #include "../includes/HttpRequest.hpp"
 
+HttpRequest::HttpRequest() : cgi_flag(false){}
+
 std::string to_lower(const std::string &str) {
     std::string result = str;
     for (size_t i = 0; i < result.size(); ++i) {
@@ -50,8 +52,6 @@ bool HttpRequest::parse(const std::string &raw_request){
     return (true);
 }
 
-
-
 bool HttpRequest::parse_start_line(){
     size_t first_space = this->start_line.find(' ');
     if (first_space == std::string::npos)
@@ -66,6 +66,7 @@ bool HttpRequest::parse_start_line(){
     if (second_space == std::string::npos)
         return false;
     std::string full_target = this->start_line.substr(first_space + 1, second_space - first_space - 1);
+
     size_t question_mark = full_target.find('?');
     if (question_mark != std::string::npos) {
         this->target = full_target.substr(0, question_mark);

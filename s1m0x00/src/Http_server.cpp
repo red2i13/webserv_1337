@@ -1,5 +1,5 @@
 #include "../includes/Http_server.hpp"
-#include "../includes/HttpRequest.hpp"
+
 
 //todo
 //Add multiplexer io model to the while loop
@@ -37,6 +37,20 @@ int Http_server::checkIfListen(int fd){
     }
     return(0);
 }
+ const char* Http_server::ParsingFails::what() const throw(){
+    return("Error in parsing of the config file\n");
+}
+int Http_server::get_block_id(int fd){
+    int block_index = -1;
+    for(size_t i = 0; i < socket_fds.size(); i++) {
+        if(socket_fds[i] == fd) {
+
+            block_index = i;
+            break;
+        }
+    }   
+    return(block_index);
+}
 
 int Http_server::socket_main_loop(){
     int c_fd;
@@ -47,67 +61,80 @@ int Http_server::socket_main_loop(){
     //note tune the max event to optimize the server when there is to much traffic
     struct epoll_event ev;
     int MAX_EVENT = 64;
-    struct epoll_event arr[MAX_EVENT];
+    struct epoll_event events[MAX_EVENT];
     int epfd = epoll_create(1);
     if(epfd < 0){
         perror("Error epoll: ");
         return(1);
     }
+    std::map<int, int> fd_block_map;
+    std::map<int , int> block_num;
     //add fd of every listening server to the epoll
     for(size_t it_block = 0 ; it_block < blocks.size(); it_block++){
         ev.data.fd = socket_fds[it_block];
-        ev.events = EPOLLIN;
-        epoll_ctl(epfd, EPOLL_CTL_ADD, socket_fds[it_block], &ev);
+        ev.events = EPOLLIN ;
+        if(epoll_ctl(epfd, EPOLL_CTL_ADD, socket_fds[it_block], &ev) == -1)
+            throw 2;
+        block_num[socket_fds[it_block]] = it_block;
 
     }
     for(;;){
-        int ready_fd = epoll_wait(epfd, arr, MAX_EVENT, -1);
+        int ready_fd = epoll_wait(epfd, events, MAX_EVENT, -1);
         std::cout << "num of ready fds " << ready_fd << std::endl;
         for(int it_fd = 0; it_fd < ready_fd; it_fd++)
         {
-            if(checkIfListen(arr[it_fd].data.fd))
+            if(checkIfListen(events[it_fd].data.fd))
             {
-                c_fd = accept(arr[it_fd].data.fd, reinterpret_cast<struct sockaddr *>(&c_addr), reinterpret_cast<socklen_t*>(&len_c_addr));
+                c_fd = accept(events[it_fd].data.fd, reinterpret_cast<struct sockaddr *>(&c_addr), reinterpret_cast<socklen_t*>(&len_c_addr));      
+                fd_block_map[c_fd] = block_num[events[it_fd].data.fd];
                 if(c_fd != -1)
-                std::cout << "Client connected succesfuly c_fd value: " << c_fd <<  std::endl; 
+                    std::cout << "Client connected succesfuly c_fd value: " << c_fd <<  std::endl; 
                 //adding client fd to epoll insantnce
                 ev.data.fd = c_fd;
-                ev.events = EPOLLIN;
+                ev.events = EPOLLIN | EPOLLOUT;
                 epoll_ctl(epfd, EPOLL_CTL_ADD, c_fd, &ev);
             }
             else
             {
                 //************parse the request here med part***************
-                char buffer[1024];
+                char buffer[2048];
                 ssize_t bytes;
-                while ((bytes = recv(arr[it_fd].data.fd, buffer, sizeof(buffer), 0)) > 0) {
-                    request.append(buffer, bytes);
-                    if (request.find("\r\n\r\n") != std::string::npos)
-                    break;
+                // if(events[it_fd].events & EPOLLIN){
+
+                    while ((bytes = recv(events[it_fd].data.fd, buffer, sizeof(buffer), 0)) > 0) {
+                        request.append(buffer, bytes);
+                        if (request.find("\r\n\r\n") != std::string::npos)
+                        {
+                            break;
+                        }
+                    }
+                // }
+                // std::cout << "==== RAW REQUEST ====\n" << request << "\n=====================" << std::endl;
+                if(events[it_fd].events & EPOLLOUT){
+
+                    if (!req.parse(request)) {
+                        std::cerr << "Failed to parse!\n";
+                        close(events[it_fd].data.fd);
+                        epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
+                        continue;
+                    }
+                    if (req.target == "/cgi-bin")
+                    {
+                        req.cgi_flag = true;
+                        //function cgi dial adnan
+                    }
+                    
+                    //delete the file descriptor form epoll instance
+                    // write(events[it_fd].data.fd, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 23\r\n\r\nThis website is working" , 89);
+                    handle_request(req, res, *blocks[fd_block_map[events[it_fd].data.fd]]);
+                    std::string response_str = res.to_string();
+                    send(events[it_fd].data.fd, response_str.c_str(), response_str.length(), 0);
+                    close(events[it_fd].data.fd);
+                    epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
+                    request.clear();
+                    res = HttpResponse();
+                    req = HttpRequest();
                 }
-                std::cout << "==== RAW REQUEST ====\n" << request << "\n=====================" << std::endl;
-                if (!req.parse(request)) {
-                    std::cerr << "Failed to parse!\n";
-                    close(arr[it_fd].data.fd);
-                    epoll_ctl(epfd, EPOLL_CTL_DEL, arr[it_fd].data.fd, &ev);
-                    continue;
-                }
-                std::cout<<req.method<<std::endl;
-                for (std::map<std::string ,std::string>::const_iterator it=req.headers.begin(); it != req.headers.end(); ++it){
-                    std::cout << it->first << " : " << it->second << std::endl;
-                }
-                // std::cout << "Received request:\n" << request << std::endl;
-                handle_request(req, res);
-                std::string response_str = res.to_string();
-                send(arr[it_fd].data.fd, response_str.c_str(), response_str.length(), 0);
-                // std::cout << "Received response:\n" << request << std::endl;
-                //delete the file descriptor form epoll instance
-                // write(arr[it_fd].data.fd, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 23\r\n\r\nThis website is working" , 89);
-                close(arr[it_fd].data.fd);
-                epoll_ctl(epfd, EPOLL_CTL_DEL, arr[it_fd].data.fd, &ev);
-                request.clear();
-                req = HttpRequest(); // Reset to fresh object
-                res = HttpResponse(); // Reset to fresh object
             }
         }
         //****************************************************** */
@@ -122,6 +149,62 @@ Http_server::Http_server(){
     blocks.push_back(def);
     blocks.push_back(def1);
 }
-Http_server::~Http_server(){
 
+
+Http_server::Http_server(char *ConfigFile){
+    if(!ConfigFile)
+        throw 1;
+    size_t index;
+
+    //open a file error.log and specify the date of the error and whats the problem
+    index = 0;
+    Server_Conf_Parser ps(ConfigFile);
+
+    if(ps.read_data())
+        // throw(4);
+        throw ParsingFails();
+    ps.parse_data(master, index);
+  
+}
+
+
+int Http_server::check_init_http_server(){
+    std::vector<ConfigNode> *ptr;
+    std::vector<ConfigNode> *n_dir;
+    
+
+    for(size_t i = 0; i < master.size() ; i++){
+        if(master[i].name == "http"){
+            ptr = &master[i].children;
+            for(size_t j = 0; j < ptr->size() ; j++){
+                if((*ptr)[j].name == "server")
+                {
+                    Server_block *new_svb = new Server_block();
+                    n_dir = &(*ptr)[j].children;
+                    for(size_t k = 0; k < (*n_dir).size(); k++){
+                        if((*n_dir)[k].name == "server_name")
+                            new_svb->set_sname((*n_dir)[k].values);
+                        else  if((*n_dir)[k].name == "error_page")
+                            new_svb->set_err_pages((*n_dir)[k].values);
+                        else  if((*n_dir)[k].name == "listen")
+                            new_svb->set_ip_host((*n_dir)[k].values);
+                        else  if((*n_dir)[k].name == "location")
+                        {
+                            new_svb->set_location((*n_dir)[k].values[0], (*n_dir)[k].children[0].values);
+                        }
+                        else if((*n_dir)[k].name == "autoindex")
+                            new_svb->set_dir_listen((*n_dir)[k].values[0] == "on");
+                        else if((*n_dir)[k].name == "post_dir")
+                            new_svb->set_upload_path((*n_dir)[k].values);
+                    }
+                    blocks.push_back(new_svb);
+                }
+            }
+        }
+    }    
+    return(0);
+}
+
+Http_server::~Http_server(){
+    blocks.clear();
 }

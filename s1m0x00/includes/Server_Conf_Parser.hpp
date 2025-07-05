@@ -26,6 +26,7 @@ class Server_Conf_Parser{
 		int clean_data();
 		int parse_data(	std::vector<ConfigNode> &parent, size_t &i);
 		Server_Conf_Parser();
+		~Server_Conf_Parser();
 		Server_Conf_Parser(std::string file_path);
 };
 

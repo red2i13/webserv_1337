@@ -192,7 +192,12 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
         if (pos != std::string::npos)
             boundary = "--" + content_type.substr(pos + 9); // skip "boundary="
 
-        handle_multipart_form(body_data, boundary, res);
+        char cwd[PATH_MAX];
+        if (getcwd(cwd, sizeof(cwd)) != 0)
+            f.upload_path = cwd;
+
+        body_data = req.body;
+        handle_multipart_form(body_data, boundary, res, f.upload_path);
         return;
     }
 
@@ -309,18 +314,18 @@ void handle_delete(HttpRequest &req, HttpResponse &res) {
 }
 
 
-void handle_multipart_form(const std::string& body, const std::string& boundary, HttpResponse& res) {
+void handle_multipart_form(const std::string& body, const std::string& boundary, HttpResponse& res, const std::string& upload_dir) {
     size_t start = 0;
     size_t end = 0;
 
     while ((start = body.find(boundary, end)) != std::string::npos) {
-        start += boundary.length() + 2; // Skip boundary and CRLF
+        start += boundary.length() + 2; // Skip boundary + CRLF
         end = body.find(boundary, start);
         if (end == std::string::npos)
             break;
 
         std::string part = body.substr(start, end - start);
-        
+
         // Separate headers and content
         size_t header_end = part.find("\r\n\r\n");
         if (header_end == std::string::npos)
@@ -329,20 +334,23 @@ void handle_multipart_form(const std::string& body, const std::string& boundary,
         std::string headers = part.substr(0, header_end);
         std::string content = part.substr(header_end + 4);
 
-        // Look for filename
+        // Find filename
         size_t fn_pos = headers.find("filename=\"");
         if (fn_pos != std::string::npos) {
             fn_pos += 10;
             size_t fn_end = headers.find("\"", fn_pos);
             std::string filename = headers.substr(fn_pos, fn_end - fn_pos);
 
-            char cwd[PATH_MAX];
-            std::string upload_path;
-            if (getcwd(cwd, sizeof(cwd)) != 0)
-                upload_path = cwd;
-            
-            std::string full_path = upload_path + "/" + filename;
-            std::cout << "full path ::: "<< full_path <<std::endl;
+            // Trim trailing CRLF
+            if (!content.empty() && content[content.size() - 1] == '\n') {
+                if (content.size() > 1 && content[content.size() - 2] == '\r')
+                    content = content.substr(0, content.size() - 2);
+                else
+                    content = content.substr(0, content.size() - 1);
+            }
+
+            // Write to upload directory
+            std::string full_path = upload_dir + "/www/upload/" + filename;
             std::ofstream out(full_path.c_str(), std::ios::binary);
             if (!out) {
                 res.set_status(500, "Internal Server Error");
@@ -358,3 +366,4 @@ void handle_multipart_form(const std::string& body, const std::string& boundary,
     res.set_header("Content-Type", "text/html");
     res.set_body("File uploaded successfully.");
 }
+

@@ -1,6 +1,6 @@
 #include "../includes/HttpRequest.hpp"
 
-HttpRequest::HttpRequest() : cgi_flag(false){}
+HttpRequest::HttpRequest(){}
 
 std::string to_lower(const std::string &str) {
     std::string result = str;

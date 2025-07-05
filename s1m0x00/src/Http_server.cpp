@@ -120,8 +120,12 @@ int Http_server::socket_main_loop(){
                     }
                     if (req.target == "/cgi-bin")
                     {
-                        req.cgi_flag = true;
+                        // req.cgi_flag = true;
                         //function cgi dial adnan
+                        handle_cgi(req, res);
+                        std::string resp = res.to_string();
+                        send(events[it_fd].data.fd, resp.c_str(), resp.length(), 0);
+                        continue;
                     }
                     
                     //delete the file descriptor form epoll instance

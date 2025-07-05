@@ -15,7 +15,7 @@ class HttpRequest{
         std::string method;
         std::string target;
         std::string query;
-        bool cgi_flag;
+        // bool cgi_flag;
         std::map<std::string, std::string> query_param;
         std::map<std::string, std::string> headers;
         std::string version;

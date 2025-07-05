@@ -12,6 +12,7 @@ class HttpResponse{
     public :
         HttpResponse();
         int status_code;
+        std::string raw;
         std::string status_message;
         std::string version;
         std::map<std::string, std::string> headers;

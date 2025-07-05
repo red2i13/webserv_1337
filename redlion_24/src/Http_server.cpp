@@ -2,13 +2,20 @@
 
 
 //todo
-//Add multiplexer io model to the while loop
 //protect the all the call that return a file descriptor when failing
 //the backlog argument of listen how much shoudl i allow for pending
 //find a solution for previlieged port below 1024 exit or handle it
 //*Done search about setsockopt and why its useful ?
 //*Done using cast of c or c++
 
+
+
+//new todo
+    //add a timer function for checking timeout 
+//add a function that a read full request until pushes them into the connection
+//add a function that send the response in order
+//change epoll from level to edge triggered
+//check the header for closed connection
 int Http_server::init_server_blocks(){
     int i = 0;
     std::vector<Server_block*>::iterator it;
@@ -40,16 +47,100 @@ int Http_server::checkIfListen(int fd){
  const char* Http_server::ParsingFails::what() const throw(){
     return("Error in parsing of the config file\n");
 }
-int Http_server::get_block_id(int fd){
-    int block_index = -1;
-    for(size_t i = 0; i < socket_fds.size(); i++) {
-        if(socket_fds[i] == fd) {
+// int Http_server::get_block_id(int fd){
+//     int block_index = -1;
+//     for(size_t i = 0; i < socket_fds.size(); i++) {
+//         if(socket_fds[i] == fd) {
 
-            block_index = i;
-            break;
+//             block_index = i;
+//             break;
+//         }
+//     }   
+//     return(block_index);
+// }
+int Http_server::can_parse_complete_request(const std::string &buffer){
+    if(buffer.find("\r\n\r\n") != std::string::npos || buffer.find("\n\n") != std::string::npos) {
+        return(1);
+    }
+    return(0);
+}
+int process_request(HttpRequest &req){
+    HttpResponse res;
+
+    
+}
+
+int Http_server::handle_client_io(int it_fd){
+    //part to change
+    //************parse the request here med part***************
+    Connection conn = connections[events[it_fd].data.fd];
+    std::cout << "check conn " << conn.fd << std::endl;
+    char buffer[2048];
+    ssize_t bytes;
+    if(events[it_fd].events & EPOLLIN){
+        //read the request from the client
+        // while ((bytes = recv(events[it_fd].data.fd, buffer, sizeof(buffer), 0)) > 0) {
+            //new part
+            // request.append(buffer, bytes);
+            
+            // if (request.find("\r\n\r\n") != std::string::npos)
+            // {
+            //     break;
+            // }
+        // }
+        bytes = recv(events[it_fd].data.fd, buffer, sizeof(buffer), 0);
+        if(!bytes)
+        {
+            std::cerr << "Error reading from client fd: " << events[it_fd].data.fd << std::endl;
+            close(events[it_fd].data.fd);
+            epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
+            return(1);
         }
-    }   
-    return(block_index);
+        conn.buffer.append(buffer, bytes);
+        while(can_parse_complete_request(conn.buffer)){
+            //find the first end of the request then append it to the conn.request
+            size_t end_pos = conn.buffer.find("\r\n\r\n");
+            HttpRequest req;
+            req.parse(conn.buffer.substr(0, end_pos + 4));
+            conn.requests.push(req);
+            conn.buffer.erase(0, end_pos + 4); // Remove the parsed request from
+        }
+        conn.mode = READING;
+        //
+        // if (!req.parse(request)) {
+        //     std::cerr << "Failed to parse!\n";
+        //     close(events[it_fd].data.fd);
+        //     epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
+        //     return(1);
+        // }
+        conn.last_activity = time(0);
+    }
+    if(!conn.requests.empty() && conn.mode == READING){
+        //if the request is parsed and ready to be processed
+        //change the mode to processing
+        conn.mode = PROCESSING;
+        HttpResponse res;
+        size_t index = fd_block_map[events[it_fd].data.fd];
+        // if (req.target == "/cgi-bin")
+        // {
+        //     req.cgi_flag = true;
+        //     //function cgi dial adnan
+        // }
+        handle_request(conn.requests.front(), res, *blocks[index]);
+        conn.responses.push(res);
+        conn.requests.pop();
+
+    }
+
+    std::cout << "==== RAW REQUEST ====\n" << request << "\n=====================" << std::endl;
+    if(events[it_fd].events & EPOLLOUT && !conn.responses.empty()){
+        
+        HttpResponse res = conn.responses.front();
+
+        std::string response_str = res.to_string();
+        send(events[it_fd].data.fd, response_str.c_str(), response_str.length(), 0);
+    }
+    return(0);
 }
 
 int Http_server::socket_main_loop(){
@@ -59,16 +150,12 @@ int Http_server::socket_main_loop(){
     std::vector<Server_block*>::iterator it;
     //adding epoll
     //note tune the max event to optimize the server when there is to much traffic
-    struct epoll_event ev;
-    int MAX_EVENT = 64;
-    struct epoll_event events[MAX_EVENT];
-    int epfd = epoll_create(1);
+ 
+    epfd = epoll_create(1);
     if(epfd < 0){
         perror("Error epoll: ");
         return(1);
     }
-    std::map<int, int> fd_block_map;
-    std::map<int , int> block_num;
     //add fd of every listening server to the epoll
     for(size_t it_block = 0 ; it_block < blocks.size(); it_block++){
         ev.data.fd = socket_fds[it_block];
@@ -79,75 +166,64 @@ int Http_server::socket_main_loop(){
 
     }
     for(;;){
-        int ready_fd = epoll_wait(epfd, events, MAX_EVENT, -1);
-        std::cout << "num of ready fds " << ready_fd << std::endl;
+        int ready_fd = epoll_wait(epfd, events, MAX_EVENT, 1000);
+        // if(ready_fd < 0){
+        //     (void)ready_fd;
+        //     //check timeout for clients
+        std::cout << "num of ready fds " << ready_fd << "and first fd "<< events[0].data.fd <<std::endl;
         for(int it_fd = 0; it_fd < ready_fd; it_fd++)
         {
             if(checkIfListen(events[it_fd].data.fd))
             {
                 c_fd = accept(events[it_fd].data.fd, reinterpret_cast<struct sockaddr *>(&c_addr), reinterpret_cast<socklen_t*>(&len_c_addr));      
                 fd_block_map[c_fd] = block_num[events[it_fd].data.fd];
+                connections[c_fd] = Connection(c_fd, blocks[block_num[events[it_fd].data.fd]], READING);
                 if(c_fd != -1)
-                    std::cout << "Client connected succesfuly c_fd value: " << c_fd <<  std::endl; 
+                std::cout << "Client connected succesfuly c_fd value: " << c_fd <<  std::endl; 
                 //adding client fd to epoll insantnce
                 ev.data.fd = c_fd;
                 ev.events = EPOLLIN | EPOLLOUT;
                 epoll_ctl(epfd, EPOLL_CTL_ADD, c_fd, &ev);
             }
+            else if (events[it_fd].events & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
+            //terminate the connection
+            (void)epfd;
             else
             {
-                //************parse the request here med part***************
-                char buffer[2048];
-                ssize_t bytes;
-                // if(events[it_fd].events & EPOLLIN){
-
-                    while ((bytes = recv(events[it_fd].data.fd, buffer, sizeof(buffer), 0)) > 0) {
-                        request.append(buffer, bytes);
-                        if (request.find("\r\n\r\n") != std::string::npos)
-                        {
-                            break;
-                        }
-                    }
-                // }
-                std::cout << "==== RAW REQUEST ====\n" << request << "\n=====================" << std::endl;
-                if(events[it_fd].events & EPOLLOUT){
-
-                    if (!req.parse(request)) {
-                        std::cerr << "Failed to parse!\n";
-                        close(events[it_fd].data.fd);
-                        epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
-                        continue;
-                    }
-                    if (req.target == "/cgi-bin")
-                    {
-                        req.cgi_flag = true;
-                        //function cgi dial adnan
-                    }
-                    
-                    //delete the file descriptor form epoll instance
-                    // write(events[it_fd].data.fd, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 23\r\n\r\nThis website is working" , 89);
-                    handle_request(req, res, *blocks[fd_block_map[events[it_fd].data.fd]]);
-                    std::string response_str = res.to_string();
-                    send(events[it_fd].data.fd, response_str.c_str(), response_str.length(), 0);
-                    close(events[it_fd].data.fd);
-                    epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
-                    request.clear();
-                    res = HttpResponse();
-                    req = HttpRequest();
-                }
+                handle_client_io(it_fd);
             }
+            check_connection_timeout();
         }
         //****************************************************** */
         //write the response (before check with epoll if the opration is possible)
     }
+    
     return(0);
 }
- 
+
+void Http_server::check_connection_timeout(){
+    
+    time_t current_time = time(0);
+    for ( std::map<int, Connection>::iterator it = connections.begin() ;connections.begin() != connections.end() ; it++){
+        // if(current_time - it->second.last_activity > it->second.server->timeout) {
+        if(current_time - it->second.last_activity > 30) {
+
+            std::cout << "Connection " << it->first << " timed out." << std::endl;
+            close(it->first);
+            epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, &ev);
+            connections.erase(it);
+        }
+    }
+}
 Http_server::Http_server(){
     Server_block *def = new Server_block();
     Server_block *def1 = new Server_block("test", 80);
     blocks.push_back(def);
     blocks.push_back(def1);
+}
+
+Connection::Connection(int n_fd, Server_block *ptr, cnx_mode m)  :last_activity(time(0)), fd(n_fd), buffer(), requests(), responses(), mode(m), server(ptr) {
+
 }
 
 

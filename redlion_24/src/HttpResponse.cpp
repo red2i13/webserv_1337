@@ -185,6 +185,16 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
         return;
     }
     std::string body_data;
+    std::string content_type = req.headers["content-type"];
+    if (content_type.find("multipart/form-data") != std::string::npos) {
+        std::string boundary;
+        size_t pos = content_type.find("boundary=");
+        if (pos != std::string::npos)
+            boundary = "--" + content_type.substr(pos + 9); // skip "boundary="
+
+        handle_multipart_form(body_data, boundary, res);
+        return;
+    }
 
     if (req.headers.count("content-length"))
     {
@@ -299,3 +309,52 @@ void handle_delete(HttpRequest &req, HttpResponse &res) {
 }
 
 
+void handle_multipart_form(const std::string& body, const std::string& boundary, HttpResponse& res) {
+    size_t start = 0;
+    size_t end = 0;
+
+    while ((start = body.find(boundary, end)) != std::string::npos) {
+        start += boundary.length() + 2; // Skip boundary and CRLF
+        end = body.find(boundary, start);
+        if (end == std::string::npos)
+            break;
+
+        std::string part = body.substr(start, end - start);
+        
+        // Separate headers and content
+        size_t header_end = part.find("\r\n\r\n");
+        if (header_end == std::string::npos)
+            continue;
+
+        std::string headers = part.substr(0, header_end);
+        std::string content = part.substr(header_end + 4);
+
+        // Look for filename
+        size_t fn_pos = headers.find("filename=\"");
+        if (fn_pos != std::string::npos) {
+            fn_pos += 10;
+            size_t fn_end = headers.find("\"", fn_pos);
+            std::string filename = headers.substr(fn_pos, fn_end - fn_pos);
+
+            char cwd[PATH_MAX];
+            std::string upload_path;
+            if (getcwd(cwd, sizeof(cwd)) != 0)
+                upload_path = cwd;
+            
+            std::string full_path = upload_path + "/" + filename;
+            std::cout << "full path ::: "<< full_path <<std::endl;
+            std::ofstream out(full_path.c_str(), std::ios::binary);
+            if (!out) {
+                res.set_status(500, "Internal Server Error");
+                res.set_body(get_error_page(500));
+                return;
+            }
+            out << content;
+            out.close();
+        }
+    }
+
+    res.set_status(201, "Created");
+    res.set_header("Content-Type", "text/html");
+    res.set_body("File uploaded successfully.");
+}

@@ -118,10 +118,13 @@ int Http_server::socket_main_loop(){
                         epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
                         continue;
                     }
-                    if (req.target == "/cgi-bin")
+
+                        std::cout << req.target << std::endl;
+                    if (req.target.find("/cgi-bin/") != std::string::npos)
                     {
                         // req.cgi_flag = true;
                         //function cgi dial adnan
+                        //std::cout << "ana heeere"<<std::endl;
                         handle_cgi(req, res);
                         std::string resp = res.to_string();
                         send(events[it_fd].data.fd, resp.c_str(), resp.length(), 0);

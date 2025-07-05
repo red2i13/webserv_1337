@@ -109,22 +109,31 @@ std::string int_to_string(int n) {
 
 // ==== Main CGI Handler ====
 int handle_cgi(HttpRequest &request, HttpResponse &response) {
+	// CHECK PATH
+	std::string script_path = "./www" + request.target;
+	// std::cout << "	paaaaath-> " << request.target << std::endl;
+	// std::cout << "	twoooooo-> " << script_path << std::endl;
 	
-	//CHECK PATH
 	if (request.target.empty()) {
-		write(2, "Script path is empty\n", 22);
+		response.set_status(400, "Bad Request");
+		response.set_header("Content-Type", "text/html");
+		response.set_body("<html><body><h1>400 Bad Request</h1><p>Script path is empty.</p></body></html>");
 		return 1;
 	}
-	if (access(request.target.c_str(), F_OK) == -1) {
-		write(2, "Script not found\n", 17);
+	else if (access(script_path.c_str(), F_OK) == -1) {
+		response.set_status(404, "Not Found");
+		response.set_header("Content-Type", "text/html");
+		response.set_body("<html><body><h1>404 Not Found</h1><p>CGI script not found.</p></body></html>");
 		return 1;
 	}
-	if (access(request.target.c_str(), X_OK) == -1) {
-		write(2, "Script is not executable\n", 25);
+	else if (access(script_path.c_str(), X_OK) == -1) {
+		response.set_status(403, "Forbidden");
+		response.set_header("Content-Type", "text/html");
+		response.set_body("<html><body><h1>403 Forbidden</h1><p>CGI script is not executable.</p></body></html>");
 		return 1;
 	}
-	int fd_in[2], fd_out[2];
 
+	int fd_in[2], fd_out[2];
 	if (pipe(fd_in) == -1 || pipe(fd_out) == -1) {
 		write(2, "pipe\n", 5);
 		return 1;
@@ -132,7 +141,7 @@ int handle_cgi(HttpRequest &request, HttpResponse &response) {
 
 	pid_t pid = fork();
 	if (pid == -1) {
-		write(2,"fork\n", 5);
+		write(2, "fork\n", 5);
 		return 1;
 	}
 
@@ -161,13 +170,16 @@ int handle_cgi(HttpRequest &request, HttpResponse &response) {
 			envp.push_back(strdup(env_strings[i].c_str()));
 		envp.push_back(NULL);
 
-		char *argv[] = { strdup(request.target.c_str()), NULL };
+		char *argv[] = { strdup(script_path.c_str()), NULL };
 
 		execve(argv[0], argv, &envp[0]);
 
 		// If execve fails
-		write(2, "execve failed\n", 15);
+		// if(n == -1)
+		// {	write(2, "execve failed\n", 15);
+		strerror(errno);
 		exit(1);
+		// }
 	} else {
 		// PARENT PROCESS
 		close(fd_in[0]);
@@ -189,16 +201,41 @@ int handle_cgi(HttpRequest &request, HttpResponse &response) {
 		// Split headers and body
 		size_t header_end = output.find("\r\n\r\n");
 		if (header_end != std::string::npos) {
-			response.headers = output.substr(0, header_end);
+			std::string header_block = output.substr(0, header_end);
+			std::istringstream header_stream(header_block);
+			std::string line;
+
+			while (std::getline(header_stream, line) && !line.empty()) {
+				size_t colon = line.find(":");
+				if (colon != std::string::npos) {
+					std::string key = line.substr(0, colon);
+					std::string value = line.substr(colon + 1);
+					key.erase(0, key.find_first_not_of(" \t"));
+					key.erase(key.find_last_not_of(" \t") + 1);
+					value.erase(0, value.find_first_not_of(" \t"));
+					value.erase(value.find_last_not_of(" \t") + 1);
+					response.set_header(key, value);
+				}
+			}
+
 			response.body = output.substr(header_end + 4);
 		} else {
+			// Fallback if no headers
 			response.body = output;
+			response.set_header("Content-Type", "text/html");
 		}
-		response.raw = output;
-	}
 
+		// Always set version and status
+		response.version = "HTTP/1.1";
+		response.set_status(200, "OK");
+
+		// Set Content-Length if not already present
+		if (response.headers.find("Content-Length") == response.headers.end())
+			response.set_header("Content-Length", int_to_string(response.body.size()));
+	}
 	return 0;
 }
+
 
 // ==== MAIN ====
 // int main() {

@@ -109,6 +109,20 @@ std::string int_to_string(int n) {
 
 // ==== Main CGI Handler ====
 int handle_cgi(const Request &request, Response &response) {
+	
+	//CHECK PATH
+	if (request.script_path.empty()) {
+		write(2, "Script path is empty\n", 22);
+		return 1;
+	}
+	if (access(request.script_path.c_str(), F_OK) == -1) {
+		write(2, "Script not found\n", 17);
+		return 1;
+	}
+	if (access(request.script_path.c_str(), X_OK) == -1) {
+		write(2, "Script is not executable\n", 25);
+		return 1;
+	}
 	int fd_in[2], fd_out[2];
 
 	if (pipe(fd_in) == -1 || pipe(fd_out) == -1) {

@@ -56,6 +56,7 @@ class Http_server{
         int checkIfListen(int fd);
         int get_block_id(int fd);
         int handle_client_io(int fd);
+        int make_socket_nonblocking(int fd);
         int process_request(HttpRequest &req, Connection &conn);
         class ParsingFails : public std::exception{
             virtual const char* what() const throw();

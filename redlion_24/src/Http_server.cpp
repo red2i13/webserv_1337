@@ -16,12 +16,30 @@
 //add a function that send the response in order
 //change epoll from level to edge triggered
 //check the header for closed connection
+
+int Http_server::make_socket_nonblocking(int fd){
+    //throw an error internal server error
+    int flags = fcntl(fd, F_GETFL ,0);
+    if(flags < 0)
+        return(-1);
+    flags |= O_NONBLOCK;
+    int t = fcntl(fd, F_SETFL, flags);
+    if(t < 0)
+        return(1);
+    return(0);
+}
+
 int Http_server::init_server_blocks(){
     int i = 0;
     std::vector<Server_block*>::iterator it;
     for(it = blocks.begin() ; it != blocks.end(); it++){
         struct sockaddr *addr = reinterpret_cast<struct sockaddr *>((*it)->get_ip_addr());
-        socket_fds.push_back(socket(AF_INET, SOCK_STREAM, 0));
+        int fd = socket(AF_INET, SOCK_STREAM, 0);
+        if(fd < 0){
+            return(1);
+        }
+        make_socket_nonblocking(fd);
+        socket_fds.push_back(fd);
         int opt = 1;
         setsockopt(socket_fds[i], SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
         if(bind(socket_fds[i], addr, sizeof(struct sockaddr_in)) == -1){
@@ -64,11 +82,11 @@ int Http_server::can_parse_complete_request(const std::string &buffer){
     }
     return(0);
 }
-int process_request(HttpRequest &req){
-    HttpResponse res;
+// int process_request(HttpRequest &req){
+//     HttpResponse res;
 
     
-}
+// }
 
 int Http_server::handle_client_io(int it_fd){
     //part to change
@@ -139,6 +157,7 @@ int Http_server::handle_client_io(int it_fd){
 
         std::string response_str = res.to_string();
         send(events[it_fd].data.fd, response_str.c_str(), response_str.length(), 0);
+        conn.last_activity = time(0);
     }
     return(0);
 }
@@ -167,8 +186,9 @@ int Http_server::socket_main_loop(){
     }
     for(;;){
         int ready_fd = epoll_wait(epfd, events, MAX_EVENT, 1000);
-        // if(ready_fd < 0){
-        //     (void)ready_fd;
+        if(ready_fd < 0){
+            check_connection_timeout();
+        }
         //     //check timeout for clients
         std::cout << "num of ready fds " << ready_fd << "and first fd "<< events[0].data.fd <<std::endl;
         for(int it_fd = 0; it_fd < ready_fd; it_fd++)
@@ -176,6 +196,7 @@ int Http_server::socket_main_loop(){
             if(checkIfListen(events[it_fd].data.fd))
             {
                 c_fd = accept(events[it_fd].data.fd, reinterpret_cast<struct sockaddr *>(&c_addr), reinterpret_cast<socklen_t*>(&len_c_addr));      
+                make_socket_nonblocking(c_fd);
                 fd_block_map[c_fd] = block_num[events[it_fd].data.fd];
                 connections[c_fd] = Connection(c_fd, blocks[block_num[events[it_fd].data.fd]], READING);
                 if(c_fd != -1)
@@ -186,16 +207,17 @@ int Http_server::socket_main_loop(){
                 epoll_ctl(epfd, EPOLL_CTL_ADD, c_fd, &ev);
             }
             else if (events[it_fd].events & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
-            //terminate the connection
-            (void)epfd;
+            {
+                close(events[it_fd].data.fd);
+                epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
+                connections.erase(events[it_fd].data.fd);
+            }
             else
             {
                 handle_client_io(it_fd);
             }
             check_connection_timeout();
         }
-        //****************************************************** */
-        //write the response (before check with epoll if the opration is possible)
     }
     
     return(0);
@@ -222,7 +244,7 @@ Http_server::Http_server(){
     blocks.push_back(def1);
 }
 
-Connection::Connection(int n_fd, Server_block *ptr, cnx_mode m)  :last_activity(time(0)), fd(n_fd), buffer(), requests(), responses(), mode(m), server(ptr) {
+Connection::Connection(int n_fd, Server_block *ptr, cnx_mode m)  : fd(n_fd),is_processing(false),last_activity(time(0)) , buffer(), requests(), responses(), mode(m), server(ptr) {
 
 }
 

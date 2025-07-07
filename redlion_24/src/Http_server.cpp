@@ -112,6 +112,7 @@ int Http_server::handle_client_io(int it_fd){
             std::cerr << "Error reading from client fd: " << events[it_fd].data.fd << std::endl;
             close(events[it_fd].data.fd);
             epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
+            //todo : remove connction from struct
             return(1);
         }
         conn.buffer.append(buffer, bytes);
@@ -119,20 +120,16 @@ int Http_server::handle_client_io(int it_fd){
             //find the first end of the request then append it to the conn.request
             size_t end_pos = conn.buffer.find("\r\n\r\n");
             HttpRequest req;
-            req.parse(conn.buffer.substr(0, end_pos + 4));
+            if(!req.parse(conn.buffer.substr(0, end_pos + 4))){
+                req.bad_req = true;
+            }
             conn.requests.push(req);
             conn.buffer.erase(0, end_pos + 4); // Remove the parsed request from
         }
         conn.mode = READING;
         //
-        // if (!req.parse(request)) {
-        //     std::cerr << "Failed to parse!\n";
-        //     close(events[it_fd].data.fd);
-        //     epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
-        //     return(1);
-        // }
         conn.last_activity = time(0);
-    }
+}
     if(!conn.requests.empty() && conn.mode == READING){
         //if the request is parsed and ready to be processed
         //change the mode to processing
@@ -188,6 +185,7 @@ int Http_server::socket_main_loop(){
         int ready_fd = epoll_wait(epfd, events, MAX_EVENT, 1000);
         if(ready_fd < 0){
             check_connection_timeout();
+            continue;
         }
         //     //check timeout for clients
         std::cout << "num of ready fds " << ready_fd << "and first fd "<< events[0].data.fd <<std::endl;
@@ -224,16 +222,17 @@ int Http_server::socket_main_loop(){
 }
 
 void Http_server::check_connection_timeout(){
-    
+    std::cout << "enter \n";
     time_t current_time = time(0);
-    for ( std::map<int, Connection>::iterator it = connections.begin() ;connections.begin() != connections.end() ; it++){
-        // if(current_time - it->second.last_activity > it->second.server->timeout) {
+    for ( std::map<int, Connection>::iterator it = connections.begin() ;it != connections.end() ; it++){
+        std::cout << "diff " << current_time - it->second.last_activity << "size map "<< connections.size() << std::endl;
         if(current_time - it->second.last_activity > 30) {
 
             std::cout << "Connection " << it->first << " timed out." << std::endl;
             close(it->first);
             epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, &ev);
             connections.erase(it);
+            exit(3);
         }
     }
 }
@@ -244,7 +243,7 @@ Http_server::Http_server(){
     blocks.push_back(def1);
 }
 
-Connection::Connection(int n_fd, Server_block *ptr, cnx_mode m)  : fd(n_fd),is_processing(false),last_activity(time(0)) , buffer(), requests(), responses(), mode(m), server(ptr) {
+Connection::Connection(int n_fd, Server_block *ptr, cnx_mode m)  : fd(n_fd),is_processing(false), last_activity(time(0)) , buffer(), requests(), responses(), mode(m), server(ptr) {
 
 }
 

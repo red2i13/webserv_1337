@@ -32,6 +32,7 @@ std::string get_error_page(int code) {
 
 
 void handle_request(HttpRequest &req, HttpResponse &res, Server_block &flag) {
+    
     if (req.method == "GET")
         handle_get(req, res, flag);
     else if (req.method == "POST")

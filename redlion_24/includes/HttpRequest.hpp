@@ -12,6 +12,7 @@ class HttpRequest{
     public :
         HttpRequest();
         std::string start_line;
+        bool bad_req;
         std::string method;
         std::string target;
         std::string query;

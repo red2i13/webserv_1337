@@ -92,7 +92,6 @@ int Http_server::handle_client_io(int it_fd){
     //part to change
     //************parse the request here med part***************
     Connection conn = connections[events[it_fd].data.fd];
-    std::cout << "check conn " << conn.fd << std::endl;
     char buffer[2048];
     ssize_t bytes;
     if(events[it_fd].events & EPOLLIN){
@@ -146,8 +145,6 @@ int Http_server::handle_client_io(int it_fd){
         conn.requests.pop();
 
     }
-
-    std::cout << "==== RAW REQUEST ====\n" << request << "\n=====================" << std::endl;
     if(events[it_fd].events & EPOLLOUT && !conn.responses.empty()){
         
         HttpResponse res = conn.responses.front();
@@ -188,7 +185,7 @@ int Http_server::socket_main_loop(){
             continue;
         }
         //     //check timeout for clients
-        std::cout << "num of ready fds " << ready_fd << "and first fd "<< events[0].data.fd <<std::endl;
+        std::cout << "num of ready fds " << ready_fd  << std::endl;
         for(int it_fd = 0; it_fd < ready_fd; it_fd++)
         {
             if(checkIfListen(events[it_fd].data.fd))
@@ -222,18 +219,17 @@ int Http_server::socket_main_loop(){
 }
 
 void Http_server::check_connection_timeout(){
-    std::cout << "enter \n";
     time_t current_time = time(0);
-    for ( std::map<int, Connection>::iterator it = connections.begin() ;it != connections.end() ; it++){
-        std::cout << "diff " << current_time - it->second.last_activity << "size map "<< connections.size() << std::endl;
-        if(current_time - it->second.last_activity > 30) {
-
+    for ( std::map<int, Connection>::iterator it = connections.begin() ;connections.size() > 0 &&  it != connections.end() ;){
+        // std::cout << "diff " << current_time - it->second.last_activity << "size map "<< connections.size() << std::endl;
+        if(current_time - it->second.last_activity > 3) {
             std::cout << "Connection " << it->first << " timed out." << std::endl;
             close(it->first);
             epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, &ev);
             connections.erase(it);
-            exit(3);
         }
+        else
+            ++it;
     }
 }
 Http_server::Http_server(){

@@ -139,13 +139,22 @@ int Http_server::handle_client_io(int it_fd){
         if (conn.requests.front().cgi_flag)
         {
             handle_cgi(conn.requests.front(), res);
-            std::string resp = res.to_string();
-            send(events[it_fd].data.fd, resp.c_str(), resp.length(), 0);
-            return(1);
+            std::cout << "dasdjskadasd" << std::endl;
+            if (res.status_code == 500)
+            {
+                res.set_header("Content-Type", "text/html");
+                res.set_body("<html><body><h1>500 Internal Server Error</h1><p>Cannot process CGI request.</p></body></html>");
+            }
+            // std::cout << res. << std::endl;
+            conn.responses.push(res);
+            conn.requests.pop();
         }
-        handle_request(conn.requests.front(), res, *blocks[index]);
-        conn.responses.push(res);
-        conn.requests.pop();
+        else{
+
+            handle_request(conn.requests.front(), res, *blocks[index]);
+            conn.responses.push(res);
+            conn.requests.pop();
+        }
 
     }
     if(events[it_fd].events & EPOLLOUT && !conn.responses.empty()){
@@ -233,7 +242,7 @@ void Http_server::check_connection_timeout(){
     time_t current_time = time(0);
     for ( std::map<int, Connection>::iterator it = connections.begin() ;connections.size() > 0 &&  it != connections.end() ;){
         // std::cout << "diff " << current_time - it->second.last_activity << "size map "<< connections.size() << std::endl;
-        if(current_time - it->second.last_activity > 60) {
+        if(current_time - it->second.last_activity > 5) {
             std::cout << "Connection " << it->first << " timed out." << std::endl;
             close(it->first);
             epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, &ev);

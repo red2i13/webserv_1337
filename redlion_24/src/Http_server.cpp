@@ -40,7 +40,7 @@ int Http_server::init_server_blocks(){
         }
         make_socket_nonblocking(fd);
         socket_fds.push_back(fd);
-        int opt = 1;
+        int opt = 5;
         setsockopt(socket_fds[i], SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
         if(bind(socket_fds[i], addr, sizeof(struct sockaddr_in)) == -1){
             perror("bind fails: ");
@@ -111,6 +111,7 @@ int Http_server::handle_client_io(int it_fd){
             std::cerr << "Error reading from client fd: " << events[it_fd].data.fd << std::endl;
             close(events[it_fd].data.fd);
             epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
+            connections.erase(events[it_fd].data.fd);
             //todo : remove connction from struct
             return(1);
         }
@@ -135,11 +136,13 @@ int Http_server::handle_client_io(int it_fd){
         conn.mode = PROCESSING;
         HttpResponse res;
         size_t index = fd_block_map[events[it_fd].data.fd];
-        // if (req.target == "/cgi-bin")
-        // {
-        //     req.cgi_flag = true;
-        //     //function cgi dial adnan
-        // }
+        if (conn.requests.front().cgi_flag)
+        {
+            handle_cgi(conn.requests.front(), res);
+            std::string resp = res.to_string();
+            send(events[it_fd].data.fd, resp.c_str(), resp.length(), 0);
+            return(1);
+        }
         handle_request(conn.requests.front(), res, *blocks[index]);
         conn.responses.push(res);
         conn.requests.pop();
@@ -151,6 +154,13 @@ int Http_server::handle_client_io(int it_fd){
 
         std::string response_str = res.to_string();
         send(events[it_fd].data.fd, response_str.c_str(), response_str.length(), 0);
+        if(conn.requests.front().is_keep_alive == false)
+        {
+            close(events[it_fd].data.fd);
+            epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
+            connections.erase(events[it_fd].data.fd);
+            return(1);
+        }
         conn.last_activity = time(0);
     }
     return(0);
@@ -185,7 +195,7 @@ int Http_server::socket_main_loop(){
             continue;
         }
         //     //check timeout for clients
-        std::cout << "num of ready fds " << ready_fd  << std::endl;
+        // std::cout << "num of ready fds " << ready_fd  << std::endl;
         for(int it_fd = 0; it_fd < ready_fd; it_fd++)
         {
             if(checkIfListen(events[it_fd].data.fd))
@@ -209,7 +219,8 @@ int Http_server::socket_main_loop(){
             }
             else
             {
-                handle_client_io(it_fd);
+                if(handle_client_io(it_fd) == 1)
+                    continue;
             }
             check_connection_timeout();
         }
@@ -222,7 +233,7 @@ void Http_server::check_connection_timeout(){
     time_t current_time = time(0);
     for ( std::map<int, Connection>::iterator it = connections.begin() ;connections.size() > 0 &&  it != connections.end() ;){
         // std::cout << "diff " << current_time - it->second.last_activity << "size map "<< connections.size() << std::endl;
-        if(current_time - it->second.last_activity > 3) {
+        if(current_time - it->second.last_activity > 60) {
             std::cout << "Connection " << it->first << " timed out." << std::endl;
             close(it->first);
             epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, &ev);

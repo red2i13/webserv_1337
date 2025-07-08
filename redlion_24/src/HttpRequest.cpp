@@ -45,6 +45,13 @@ bool HttpRequest::parse(const std::string &raw_request){
             std::string key = trim(line.substr(0, colon));
             std::string value = trim(line.substr(colon + 1));
             headers[to_lower(key)] = value;
+            if(to_lower(key) == "connection") {
+                if (to_lower(value) == "keep-alive") {
+                    is_keep_alive = true;
+                } else if (to_lower(value) == "close") {
+                    is_keep_alive = false;
+                }
+            }
         }
     }
 
@@ -77,6 +84,8 @@ bool HttpRequest::parse_start_line(){
         this->query = "";
     }
     this->target = url_decode(this->target);
+    if (target.find("/cgi-bin/") != std::string::npos)
+        cgi_flag = true;
     this->version = this->start_line.substr(second_space + 1);
     if (version != "HTTP/1.1")
     {

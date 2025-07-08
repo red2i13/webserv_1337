@@ -6,6 +6,7 @@
 #include "HttpRequest.hpp"
 #include "Server_Conf_Parser.hpp"
 #include "HttpResponse.hpp"
+#include "run_cgi.hpp"
 
 #define MAX_EVENT 64
 

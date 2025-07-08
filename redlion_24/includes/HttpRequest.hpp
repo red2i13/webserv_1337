@@ -13,6 +13,7 @@ class HttpRequest{
         HttpRequest();
         std::string start_line;
         bool bad_req;
+        bool is_keep_alive;
         std::string method;
         std::string target;
         std::string query;

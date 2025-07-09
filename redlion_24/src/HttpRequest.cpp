@@ -1,6 +1,6 @@
 #include "../includes/HttpRequest.hpp"
 
-HttpRequest::HttpRequest() : bad_req(false), cgi_flag(false){}
+HttpRequest::HttpRequest() : bad_req(false), is_keep_alive(true), cgi_flag(false){}
 
 std::string to_lower(const std::string &str) {
     std::string result = str;
@@ -48,9 +48,7 @@ bool HttpRequest::parse(const std::string &raw_request){
             std::string value = trim(line.substr(colon + 1));
             headers[to_lower(key)] = value;
             if(to_lower(key) == "connection") {
-                if (to_lower(value) == "keep-alive") {
-                    is_keep_alive = true;
-                } else if (to_lower(value) == "close") {
+                if (to_lower(value) == "close") {
                     is_keep_alive = false;
                 }
             }

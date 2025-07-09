@@ -1,21 +1,13 @@
 #include "../includes/Http_server.hpp"
 
 
-//todo
-//protect the all the call that return a file descriptor when failing
-//the backlog argument of listen how much shoudl i allow for pending
-//find a solution for previlieged port below 1024 exit or handle it
-//*Done search about setsockopt and why its useful ?
-//*Done using cast of c or c++
-
-
-
 //new todo
-    //add a timer function for checking timeout 
-//add a function that a read full request until pushes them into the connection
-//add a function that send the response in order
-//change epoll from level to edge triggered
-//check the header for closed connection
+//DONEadd a timer function for checking timeout 
+//DONEadd a function that a read full request until pushes them into the connection
+//DONEadd a function that send the response in order
+//DONE change epoll from level to edge triggered
+//DONEcheck the header for closed connection
+// STILL DOING You're popping responses without checking if the send was successful or complete.
 
 int Http_server::make_socket_nonblocking(int fd){
     //throw an error internal server error
@@ -25,7 +17,7 @@ int Http_server::make_socket_nonblocking(int fd){
     flags |= O_NONBLOCK;
     int t = fcntl(fd, F_SETFL, flags);
     if(t < 0)
-        return(1);
+        return(-1);
     return(0);
 }
 
@@ -77,7 +69,7 @@ int Http_server::checkIfListen(int fd){
 //     return(block_index);
 // }
 int Http_server::can_parse_complete_request(const std::string &buffer){
-    if(buffer.find("\r\n\r\n") != std::string::npos || buffer.find("\n\n") != std::string::npos) {
+    if((buffer.find("\r\n\r\n") != std::string::npos) || (buffer.find("\n\n") != std::string::npos)) {
         return(1);
     }
     return(0);
@@ -91,40 +83,41 @@ int Http_server::can_parse_complete_request(const std::string &buffer){
 int Http_server::handle_client_io(int it_fd){
     //part to change
     //************parse the request here med part***************
-    Connection conn = connections[events[it_fd].data.fd];
+    Connection &conn = connections[events[it_fd].data.fd];
     char buffer[2048];
     ssize_t bytes;
-    if(events[it_fd].events & EPOLLIN){
-        //read the request from the client
-        // while ((bytes = recv(events[it_fd].data.fd, buffer, sizeof(buffer), 0)) > 0) {
-            //new part
-            // request.append(buffer, bytes);
-            
-            // if (request.find("\r\n\r\n") != std::string::npos)
-            // {
-            //     break;
-            // }
-        // }
-        bytes = recv(events[it_fd].data.fd, buffer, sizeof(buffer), 0);
-        if(!bytes)
+    if(events[it_fd].events & EPOLLIN){        
+        while((bytes = recv(events[it_fd].data.fd, buffer, sizeof(buffer), 0)) > 0)
         {
-            std::cerr << "Error reading from client fd: " << events[it_fd].data.fd << std::endl;
-            close(events[it_fd].data.fd);
-            epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
-            connections.erase(events[it_fd].data.fd);
-            //todo : remove connction from struct
-            return(1);
+            // if(bytes == -1)
+            //     return(1);
+            if(!bytes)
+            {
+                std::cerr << "Error reading from client fd: " << events[it_fd].data.fd << std::endl;
+                close(events[it_fd].data.fd);
+                epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
+                connections.erase(events[it_fd].data.fd);
+                //todo : remove connction from struct
+                return(0);
+            }
+            conn.buffer.append(buffer, bytes);
+            std::cout << "hello" << std::endl;
         }
-        conn.buffer.append(buffer, bytes);
+        std::cout << "len of the buffer" << strlen(buffer) << std::endl;
         while(can_parse_complete_request(conn.buffer)){
             //find the first end of the request then append it to the conn.request
-            size_t end_pos = conn.buffer.find("\r\n\r\n");
+            size_t end_request;
+            if ((end_request = conn.buffer.find("0\r\n\r\n")) != std::string::npos){
+                end_request+=5;
+            }
+            else if ((end_request = conn.buffer.find("\r\n\r\n")) != std::string::npos)
+                end_request += 4;
             HttpRequest req;
-            if(!req.parse(conn.buffer.substr(0, end_pos + 4))){
+            if(!req.parse(conn.buffer.substr(0, end_request))){
                 req.bad_req = true;
             }
             conn.requests.push(req);
-            conn.buffer.erase(0, end_pos + 4); // Remove the parsed request from
+            conn.buffer.erase(0, end_request + 4); // Remove the parsed request from
         }
         conn.mode = READING;
         //
@@ -136,7 +129,9 @@ int Http_server::handle_client_io(int it_fd){
         conn.mode = PROCESSING;
         HttpResponse res;
         size_t index = fd_block_map[events[it_fd].data.fd];
-        if (conn.requests.front().cgi_flag)
+        if (!conn.requests.front().is_keep_alive)
+            conn.mode = CLOSED; 
+        if ((conn.requests.size() > 0) && (conn.requests.front().cgi_flag))
         {
             handle_cgi(conn.requests.front(), res);
             std::cout << "dasdjskadasd" << std::endl;
@@ -163,12 +158,13 @@ int Http_server::handle_client_io(int it_fd){
 
         std::string response_str = res.to_string();
         send(events[it_fd].data.fd, response_str.c_str(), response_str.length(), 0);
-        if(conn.requests.front().is_keep_alive == false)
+        if(conn.mode == CLOSED) 
         {
+            std::cout << "i am closed\n";
             close(events[it_fd].data.fd);
             epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
             connections.erase(events[it_fd].data.fd);
-            return(1);
+            return(0);
         }
         conn.last_activity = time(0);
     }
@@ -191,7 +187,7 @@ int Http_server::socket_main_loop(){
     //add fd of every listening server to the epoll
     for(size_t it_block = 0 ; it_block < blocks.size(); it_block++){
         ev.data.fd = socket_fds[it_block];
-        ev.events = EPOLLIN ;
+        ev.events = EPOLLIN;
         if(epoll_ctl(epfd, EPOLL_CTL_ADD, socket_fds[it_block], &ev) == -1)
             throw 2;
         block_num[socket_fds[it_block]] = it_block;
@@ -203,25 +199,27 @@ int Http_server::socket_main_loop(){
             check_connection_timeout();
             continue;
         }
-        //     //check timeout for clients
-        // std::cout << "num of ready fds " << ready_fd  << std::endl;
+        //check timeout for clients
+        std::cout << "num of ready fds " << ready_fd  << std::endl;
         for(int it_fd = 0; it_fd < ready_fd; it_fd++)
         {
+            std::cout << events[it_fd].data.fd << " event number" << std::endl;
             if(checkIfListen(events[it_fd].data.fd))
             {
                 c_fd = accept(events[it_fd].data.fd, reinterpret_cast<struct sockaddr *>(&c_addr), reinterpret_cast<socklen_t*>(&len_c_addr));      
-                make_socket_nonblocking(c_fd);
+                std::cout << "setting fd return " << make_socket_nonblocking(c_fd) << std::endl;
                 fd_block_map[c_fd] = block_num[events[it_fd].data.fd];
                 connections[c_fd] = Connection(c_fd, blocks[block_num[events[it_fd].data.fd]], READING);
                 if(c_fd != -1)
                 std::cout << "Client connected succesfuly c_fd value: " << c_fd <<  std::endl; 
                 //adding client fd to epoll insantnce
                 ev.data.fd = c_fd;
-                ev.events = EPOLLIN | EPOLLOUT;
+                ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
                 epoll_ctl(epfd, EPOLL_CTL_ADD, c_fd, &ev);
             }
             else if (events[it_fd].events & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
             {
+                std::cout << "&%^&$*^&%^#&*^&%$^^&" << std::endl;
                 close(events[it_fd].data.fd);
                 epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
                 connections.erase(events[it_fd].data.fd);

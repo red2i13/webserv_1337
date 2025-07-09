@@ -13,7 +13,9 @@
 enum cnx_mode{
     READING,
     WRITING,
-    PROCESSING
+    PROCESSING,
+    CGI,
+    CLOSED
 };
 struct Connection {
     int fd;

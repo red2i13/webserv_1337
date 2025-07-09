@@ -1,51 +1,5 @@
-<!-- <form action="http://localhost:8080/upload" method="POST" enctype="multipart/form-data">
+<form action="http://localhost:8080/upload" method="POST" enctype="multipart/form-data">
     <input type="file" name="myfile" />
     <button type="submit">Upload</button>
   </form>
-   -->
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Chunked Text Upload</title>
-</head>
-<body>
-  <h2>Send Chunked Text</h2>
-  <textarea id="textInput" rows="10" cols="50" placeholder="Enter long text..."></textarea><br><br>
-  <button onclick="sendChunked()">Send Chunked</button>
-
-  <script>
-    async function sendChunked() {
-      const text = document.getElementById("textInput").value;
-      const encoder = new TextEncoder();
-      let position = 0;
-      const chunkSize = 1024; // 1 KB chunks
-
-      const stream = new ReadableStream({
-        pull(controller) {
-          if (position >= text.length) {
-            controller.close();
-            return;
-          }
-
-          const chunk = text.slice(position, position + chunkSize);
-          controller.enqueue(encoder.encode(chunk));
-          position += chunkSize;
-        }
-      });
-
-      const response = await fetch("/upload", {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain"
-        },
-        body: stream
-      });
-
-      const result = await response.text();
-      alert("Server responded: " + result);
-    }
-  </script>
-</body>
-</html>
+  

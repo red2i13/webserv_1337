@@ -232,14 +232,14 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
         f.upload_path = cwd;
     }
     std::string filename = "upload.txt";
-    std::string full_path = f.upload_path + "/" + filename;
+    std::string full_path = f.upload_path + "/www/upload/" + filename;
     std::ofstream file(full_path.c_str(), std::ios::binary);
     if (!file) {
         res.set_status(500, "Internal Server Error");
         res.set_body(get_error_page(500));
         return;
     }
-
+    std::cout << body_data << std::endl;
     file << body_data;
     file.close();
 

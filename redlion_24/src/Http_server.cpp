@@ -89,6 +89,7 @@ int Http_server::handle_client_io(int it_fd){
     if(events[it_fd].events & EPOLLIN){        
         while((bytes = recv(events[it_fd].data.fd, buffer, sizeof(buffer), 0)) > 0)
         {
+            std::cout << "***************************************************************************" << std::endl;
             // if(bytes == -1)
             //     return(1);
             if(!bytes)
@@ -134,13 +135,11 @@ int Http_server::handle_client_io(int it_fd){
         if ((conn.requests.size() > 0) && (conn.requests.front().cgi_flag))
         {
             handle_cgi(conn.requests.front(), res);
-            std::cout << "dasdjskadasd" << std::endl;
             if (res.status_code == 500)
             {
                 res.set_header("Content-Type", "text/html");
                 res.set_body("<html><body><h1>500 Internal Server Error</h1><p>Cannot process CGI request.</p></body></html>");
             }
-            // std::cout << res. << std::endl;
             conn.responses.push(res);
             conn.requests.pop();
         }

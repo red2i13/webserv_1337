@@ -228,8 +228,8 @@ int Http_server::socket_main_loop(){
                 if(handle_client_io(it_fd) == 1)
                     continue;
             }
-            check_connection_timeout();
         }
+        check_connection_timeout();
     }
     
     return(0);
@@ -237,16 +237,21 @@ int Http_server::socket_main_loop(){
 
 void Http_server::check_connection_timeout(){
     time_t current_time = time(0);
-    for ( std::map<int, Connection>::iterator it = connections.begin() ;connections.size() > 0 &&  it != connections.end() ;){
-        // std::cout << "diff " << current_time - it->second.last_activity << "size map "<< connections.size() << std::endl;
+    std::map<int, Connection>::iterator it = connections.begin() ;
+    while ( it != connections.end()){
+        // std::cout  << "size map "<< connections.size() << std::endl;
         if(current_time - it->second.last_activity > 5) {
-            std::cout << "Connection " << it->first << " timed out." << std::endl;
-            close(it->first);
-            epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, &ev);
-            connections.erase(it);
+            int fd_to_close = it->first; // Store the fd before incrementing the iterator
+            std::map<int, Connection>::iterator to_erase = it;
+            it++;
+            std::cout << "Connection " << fd_to_close << " timed out." << std::endl;
+            close(fd_to_close);
+            epoll_ctl(epfd, EPOLL_CTL_DEL, fd_to_close, &ev);
+            connections.erase(to_erase);
         }
         else
             ++it;
+   
     }
 }
 Http_server::Http_server(){

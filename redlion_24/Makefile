@@ -1,4 +1,4 @@
-CPPFLAGS = -Wall -Wextra -Werror -std=c++98 -g3
+CPPFLAGS = -Wall -Wextra -Werror -std=c++98 -g3 -fsanitize=address
 CC = c++
 NAME = webserv
 FILES = main.cpp Http_server.cpp Server_block.cpp HttpRequest.cpp Server_Conf_Parser.cpp HttpResponse.cpp run_cgi.cpp

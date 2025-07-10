@@ -57,28 +57,29 @@ int Http_server::checkIfListen(int fd){
  const char* Http_server::ParsingFails::what() const throw(){
     return("Error in parsing of the config file\n");
 }
-// int Http_server::get_block_id(int fd){
-//     int block_index = -1;
-//     for(size_t i = 0; i < socket_fds.size(); i++) {
-//         if(socket_fds[i] == fd) {
 
-//             block_index = i;
-//             break;
-//         }
-//     }   
-//     return(block_index);
-// }
 int Http_server::can_parse_complete_request(const std::string &buffer){
-    if((buffer.find("\r\n\r\n") != std::string::npos)) {
+    if(buffer.find("POST") != std::string::npos && buffer.find("Content-Length") != std::string::npos)
+    {
+        size_t pos = buffer.find("Content-Length");
+        if (pos == std::string::npos)
+            return(0);
+        pos += 15; // Move past "Content-length: "
+        size_t end_pos = buffer.find("\r\n", pos);
+        if (end_pos == std::string::npos)
+            return(0);
+        std::string content_length_str = buffer.substr(pos, end_pos - pos);
+        size_t content_length = atoi(content_length_str.c_str());
+        // Check if the buffer contains enough data for the request
+        if (buffer.size() < end_pos + 4 + content_length) // 4 for "\r\n\r\n"
+            return(0);
+        return(1);
+    }
+    else if((buffer.find("\r\n\r\n") != std::string::npos)) {
         return(1);
     }
     return(0);
 }
-// int process_request(HttpRequest &req){
-//     HttpResponse res;
-
-    
-// }
 
 int Http_server::handle_client_io(int it_fd){
     //part to change
@@ -104,15 +105,22 @@ int Http_server::handle_client_io(int it_fd){
         }
         while(can_parse_complete_request(conn.buffer)){
             //find the first end of the request then append it to the conn.request
+            size_t end_headers;
             size_t end_request;
-            if ((end_request = conn.buffer.find("0\r\n\r\n")) != std::string::npos){
-                end_request += 5;
+            if ((end_headers = conn.buffer.find("0\r\n\r\n")) != std::string::npos){
+                end_headers += 5;
             }
-            else if ((end_request = conn.buffer.find("\r\n\r\n")) != std::string::npos)
-                end_request += 4;
-            
+            else if ((end_headers = conn.buffer.find("\r\n\r\n")) != std::string::npos)
+                end_headers += 4;
+            //to clean after
+            size_t pos = conn.buffer.find("Content-Length");
+            pos += 15; // Move past "Content-length: "
+            size_t end_pos = conn.buffer.find("\r\n", pos);
+            std::string content_length_str = conn.buffer.substr(pos, end_pos - pos);
+            size_t content_length = atoi(content_length_str.c_str());
+            //////////
+            end_request = end_headers + content_length;
             HttpRequest req;
-            std::cout << "%%%%%%%%%%"<< conn.buffer.substr(0, end_request) << "%%%%%%%%%%"<< std::endl;
             if(!req.parse(conn.buffer.substr(0, end_request))){
                 req.bad_req = true;
             }

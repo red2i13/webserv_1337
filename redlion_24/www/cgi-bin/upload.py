@@ -2,6 +2,7 @@
 
 import cgi
 import os
+import sys
 
 print("Content-Type: text/html\n")
 
@@ -18,8 +19,10 @@ if os.environ.get("REQUEST_METHOD", "") == "POST":
         fileitem = form["file"]
         if fileitem.filename:
             filename = os.path.basename(fileitem.filename)
-            upload_dir = "./www/uploads/"
+            upload_dir = "./www/upload/"
             save_path = os.path.join(upload_dir, filename)
+            print(f"Filename: {filename}<br>")
+            print(f"Save path: {save_path}<br>")
             # Ensure upload directory exists
             os.makedirs(upload_dir, exist_ok=True)
             with open(save_path, "wb") as f:

@@ -69,7 +69,7 @@ int Http_server::checkIfListen(int fd){
 //     return(block_index);
 // }
 int Http_server::can_parse_complete_request(const std::string &buffer){
-    if((buffer.find("\r\n\r\n") != std::string::npos) || (buffer.find("\n\n") != std::string::npos)) {
+    if((buffer.find("\r\n\r\n") != std::string::npos)) {
         return(1);
     }
     return(0);
@@ -82,7 +82,7 @@ int Http_server::can_parse_complete_request(const std::string &buffer){
 
 int Http_server::handle_client_io(int it_fd){
     //part to change
-    //************parse the request here med part***************
+    //***********parse the request here med part***************
     Connection &conn = connections[events[it_fd].data.fd];
     char buffer[2048];
     ssize_t bytes;
@@ -102,7 +102,6 @@ int Http_server::handle_client_io(int it_fd){
             }
             conn.buffer.append(buffer, bytes);
         }
-        std::cout << "len of the buffer" << conn.buffer.size() << std::endl;
         while(can_parse_complete_request(conn.buffer)){
             //find the first end of the request then append it to the conn.request
             size_t end_request;
@@ -111,11 +110,18 @@ int Http_server::handle_client_io(int it_fd){
             }
             else if ((end_request = conn.buffer.find("\r\n\r\n")) != std::string::npos)
                 end_request += 4;
+            
             HttpRequest req;
+            std::cout << "%%%%%%%%%%"<< conn.buffer.substr(0, end_request) << "%%%%%%%%%%"<< std::endl;
             if(!req.parse(conn.buffer.substr(0, end_request))){
                 req.bad_req = true;
             }
             conn.requests.push(req);
+            std::cout << "Headers:" << std::endl;
+            for (std::map<std::string, std::string>::iterator it = conn.requests.front().headers.begin(); it != conn.requests.front().headers.end(); ++it) {
+                std::cout << it->first << ": " << it->second << std::endl;
+            }
+            std::cout << "Body:" << conn.requests.front().body << std::endl;
             conn.buffer.erase(0, end_request); // Remove the parsed request from
         }
         conn.mode = READING;
@@ -145,9 +151,7 @@ int Http_server::handle_client_io(int it_fd){
 
             handle_request(conn.requests.front(), res, *blocks[index]);
             conn.responses.push(res);
-            std::cout << "before pop " << conn.requests.size() << std::endl;
             conn.requests.pop();
-            std::cout << "after pop " << conn.requests.size() << std::endl;
 
         }
 
@@ -158,7 +162,7 @@ int Http_server::handle_client_io(int it_fd){
 
         std::string response_str = res.to_string();
         int byte_sent  = send(events[it_fd].data.fd, response_str.c_str(), response_str.length(), 0);
-        std::cout << byte_sent << " ********************" << std::endl; 
+        std::cout << "bytes sent "<< byte_sent  << std::endl; 
         if(conn.mode == CLOSED) 
         {
             std::cout << "i am closed\n";

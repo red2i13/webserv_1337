@@ -89,7 +89,6 @@ int Http_server::handle_client_io(int it_fd){
     if(events[it_fd].events & EPOLLIN){        
         while((bytes = recv(events[it_fd].data.fd, buffer, sizeof(buffer), 0)) > 0)
         {
-            std::cout << "***************************************************************************" << std::endl;
             // if(bytes == -1)
             //     return(1);
             if(!bytes)
@@ -102,14 +101,13 @@ int Http_server::handle_client_io(int it_fd){
                 return(0);
             }
             conn.buffer.append(buffer, bytes);
-            std::cout << "hello" << std::endl;
         }
-        std::cout << "len of the buffer" << strlen(buffer) << std::endl;
+        std::cout << "len of the buffer" << conn.buffer.size() << std::endl;
         while(can_parse_complete_request(conn.buffer)){
             //find the first end of the request then append it to the conn.request
             size_t end_request;
             if ((end_request = conn.buffer.find("0\r\n\r\n")) != std::string::npos){
-                end_request+=5;
+                end_request += 5;
             }
             else if ((end_request = conn.buffer.find("\r\n\r\n")) != std::string::npos)
                 end_request += 4;
@@ -118,7 +116,7 @@ int Http_server::handle_client_io(int it_fd){
                 req.bad_req = true;
             }
             conn.requests.push(req);
-            conn.buffer.erase(0, end_request + 4); // Remove the parsed request from
+            conn.buffer.erase(0, end_request); // Remove the parsed request from
         }
         conn.mode = READING;
         //
@@ -147,7 +145,10 @@ int Http_server::handle_client_io(int it_fd){
 
             handle_request(conn.requests.front(), res, *blocks[index]);
             conn.responses.push(res);
+            std::cout << "before pop " << conn.requests.size() << std::endl;
             conn.requests.pop();
+            std::cout << "after pop " << conn.requests.size() << std::endl;
+
         }
 
     }
@@ -156,7 +157,8 @@ int Http_server::handle_client_io(int it_fd){
         HttpResponse res = conn.responses.front();
 
         std::string response_str = res.to_string();
-        send(events[it_fd].data.fd, response_str.c_str(), response_str.length(), 0);
+        int byte_sent  = send(events[it_fd].data.fd, response_str.c_str(), response_str.length(), 0);
+        std::cout << byte_sent << " ********************" << std::endl; 
         if(conn.mode == CLOSED) 
         {
             std::cout << "i am closed\n";
@@ -165,6 +167,7 @@ int Http_server::handle_client_io(int it_fd){
             connections.erase(events[it_fd].data.fd);
             return(0);
         }
+        conn.responses.pop();
         conn.last_activity = time(0);
     }
     return(0);
@@ -193,13 +196,14 @@ int Http_server::socket_main_loop(){
 
     }
     for(;;){
+        std::cout  << "size map "<< connections.size() << std::endl;
         int ready_fd = epoll_wait(epfd, events, MAX_EVENT, 1000);
         if(ready_fd < 0){
             check_connection_timeout();
             continue;
         }
         //check timeout for clients
-        std::cout << "num of ready fds " << ready_fd  << std::endl;
+        // std::cout << "num of ready fds " << ready_fd  << std::endl;
         for(int it_fd = 0; it_fd < ready_fd; it_fd++)
         {
             std::cout << events[it_fd].data.fd << " event number" << std::endl;
@@ -240,7 +244,7 @@ void Http_server::check_connection_timeout(){
     std::map<int, Connection>::iterator it = connections.begin() ;
     while ( it != connections.end()){
         // std::cout  << "size map "<< connections.size() << std::endl;
-        if(current_time - it->second.last_activity > 5) {
+        if(current_time - it->second.last_activity > 30) {
             int fd_to_close = it->first; // Store the fd before incrementing the iterator
             std::map<int, Connection>::iterator to_erase = it;
             it++;

@@ -13,14 +13,13 @@ std::string to_lower(const std::string &str) {
 
 bool HttpRequest::parse(const std::string &raw_request){
     size_t header_end = raw_request.find("\r\n\r\n");
-    std::cout << "******* " << raw_request << "\n**********\n";
+    std::cout << "******* " << raw_request << "**********\n";
     if (header_end == std::string::npos){
         std::cout<<"1 parse err"<<std::endl;
         return (false);
     }
     std::string header_part = raw_request.substr(0, header_end);
     std::string body_part = raw_request.substr(header_end + 4);
-    std::cout <<"ana body : "<<  body_part << std::endl;
     
     size_t first_crlf = header_part.find("\r\n");
     this->start_line = header_part.substr(0, first_crlf);

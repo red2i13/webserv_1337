@@ -13,6 +13,7 @@
 #include <cerrno>
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
+#include "Server_block.hpp"
 
 // ==== Basic Structs ====
 // struct Request {
@@ -29,4 +30,4 @@ struct Response {
 	std::string body;
 };
 
-int handle_cgi(HttpRequest &request, HttpResponse &response);
+int handle_cgi(HttpRequest &request, HttpResponse &response, Server_block &f);

@@ -9,7 +9,7 @@ std::string int_to_string(int n) {
 }
 
 // ==== Main CGI Handler ====
-int handle_cgi(HttpRequest &request, HttpResponse &response) {
+int handle_cgi(HttpRequest &request, HttpResponse &response, Server_block &f) {
 	std::string script_path = "./www" + request.target;
 	// CHECK METHID
 	if (request.method == "DELETE") 
@@ -72,11 +72,15 @@ int handle_cgi(HttpRequest &request, HttpResponse &response) {
 		// Build ENV
 		std::vector<std::string> env_strings;
 		env_strings.push_back("REQUEST_METHOD=" + request.method);
+		std::cout << "REQUEST_METHOD: " << request.method << std::endl;
+		env_strings.push_back("REQUEST_URI=" + request.target);
+		env_strings.push_back("SERVER_NAME=localhost");
+		env_strings.push_back("SERVER_PORT=8080");	
 		env_strings.push_back("QUERY_STRING=" + request.query);
 		env_strings.push_back("CONTENT_LENGTH=" + int_to_string(request.body.size()));
 		std::map<std::string, std::string>::const_iterator it = request.headers.find("Content-Type");
 		if (it != request.headers.end())
-		env_strings.push_back("CONTENT_TYPE=" + it->second);
+			env_strings.push_back("CONTENT_TYPE=" + it->second);	
 		env_strings.push_back("GATEWAY_INTERFACE=CGI/1.1");
 		env_strings.push_back("SCRIPT_NAME=" + request.target);
 		env_strings.push_back("SERVER_PROTOCOL=HTTP/1.1");
@@ -99,7 +103,7 @@ int handle_cgi(HttpRequest &request, HttpResponse &response) {
 		else if (ext == ".php") interpreter = "/usr/bin/php-cgi";
 		else interpreter = "";
 		if(access(interpreter.c_str(), F_OK) == -1) {
-			std::cout << "med zaml" << std::endl;			
+			std::cout << "NO FILE" << std::endl;			
 			exit (5); // No interpreter found, will try to exec script directly
 		}
 		char *argv[] = { NULL, NULL, NULL };
@@ -130,23 +134,25 @@ int handle_cgi(HttpRequest &request, HttpResponse &response) {
 		close(fd_out[1]);
 		
 		if (request.method == "POST")
-		write(fd_in[1], request.body.c_str(), request.body.size());
+		{
+			handle_post(request,response, f); // Assuming blocks[0] is the default server block
+			write(fd_in[1], request.body.c_str(), request.body.size());
+		}
+		else if (request.method == "GET")
+		{
+			write(fd_in[1], request.body.c_str(), request.body.size());
+		}
+		
 		close(fd_in[1]);
 		
 		char buffer[1024];
 		std::string output;
 		ssize_t n;
 		while ((n = read(fd_out[0], buffer, sizeof(buffer))) > 0)
-		{
-			std::cout << "infinit loop" << std::endl;	
 			output.append(buffer, n);
-		}
 		std::cout << response.status_code << response.status_message << std::endl;
-		std::cout << "i am here" << std::endl;
 		close(fd_out[0]);
-		std::cerr << "Before waitpid" << std::endl;
 		waitpid(pid, NULL, 0);
-		std::cerr << "After waitpid";
 		// Split headers and body
 		size_t header_end = output.find("\r\n\r\n");
 		if (header_end != std::string::npos) {

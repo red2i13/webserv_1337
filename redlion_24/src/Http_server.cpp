@@ -145,7 +145,7 @@ int Http_server::handle_client_io(int it_fd){
             conn.mode = CLOSED; 
         if ((conn.requests.size() > 0) && (conn.requests.front().cgi_flag))
         {
-            handle_cgi(conn.requests.front(), res);
+            handle_cgi(conn.requests.front(), res, *blocks[index]);
             if (res.status_code == 500)
             {
                 res.set_header("Content-Type", "text/html");

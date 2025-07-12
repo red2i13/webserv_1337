@@ -198,7 +198,6 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
         f.upload_path = cwd;
         
         body_data = req.body;
-        std::cout << "bouuuuuuuuundry: " << req.body << std::endl;
         handle_multiple_form(body_data, boundary, res, f.upload_path);
         return;
     }
@@ -240,7 +239,6 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
         res.set_body(get_error_page(500));
         return;
     }
-    std::cout << body_data << std::endl;
     file << body_data;
     file.close();
 

@@ -88,9 +88,9 @@ int Http_server::handle_client_io(int it_fd){
     char buffer[2048];
     ssize_t bytes;
     if(events[it_fd].events & EPOLLIN){     
-        bytes = recv(events[it_fd].data.fd, buffer, sizeof(buffer), 0);   
-        //while((bytes = recv(events[it_fd].data.fd, buffer, sizeof(buffer), 0)) > 0)
-        //{
+        // bytes = recv(events[it_fd].data.fd, buffer, sizeof(buffer), 0);   
+        while((bytes = recv(events[it_fd].data.fd, buffer, sizeof(buffer), 0)) > 0)
+        {
             // if(bytes == -1)
             //     return(1);
             if(!bytes)
@@ -104,7 +104,7 @@ int Http_server::handle_client_io(int it_fd){
             }
             conn.buffer.append(buffer, bytes);
             // std::cout << "Connection " << conn.fd << " bytes reading " <<conn.buffer.size() << std::endl;
-        //}
+        }
         while(can_parse_complete_request(conn.buffer)){
             //find the first end of the request then append it to the conn.request
             size_t end_headers;
@@ -131,7 +131,6 @@ int Http_server::handle_client_io(int it_fd){
             for (std::map<std::string, std::string>::iterator it = conn.requests.front().headers.begin(); it != conn.requests.front().headers.end(); ++it) {
                 std::cout << it->first << ": " << it->second << std::endl;
             }
-            std::cout << "Body:" << conn.requests.front().body << std::endl;
             conn.buffer.erase(0, end_request); // Remove the parsed request from
         }
         conn.mode = READING;
@@ -220,7 +219,14 @@ int Http_server::socket_main_loop(){
         // std::cout << "num of ready fds " << ready_fd  << std::endl;
         for(int it_fd = 0; it_fd < ready_fd; it_fd++)
         {
-            std::cout << events[it_fd].data.fd << " event number" << std::endl;
+            std::cout << events[it_fd].data.fd << " event number " <<it_fd<< std::endl;
+            if (events[it_fd].events & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
+            {
+                std::cout << "&%^&$*^&%^#&*^&%$^^&" << std::endl;
+                close(events[it_fd].data.fd);
+                epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
+                connections.erase(events[it_fd].data.fd);
+            }
             if(checkIfListen(events[it_fd].data.fd))
             {
                 c_fd = accept(events[it_fd].data.fd, reinterpret_cast<struct sockaddr *>(&c_addr), reinterpret_cast<socklen_t*>(&len_c_addr));      
@@ -234,19 +240,21 @@ int Http_server::socket_main_loop(){
                 ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
                 epoll_ctl(epfd, EPOLL_CTL_ADD, c_fd, &ev);
             }
-            else if (events[it_fd].events & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
-            {
-                std::cout << "&%^&$*^&%^#&*^&%$^^&" << std::endl;
-                close(events[it_fd].data.fd);
-                epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
-                connections.erase(events[it_fd].data.fd);
-            }
             else
-            {
                 if(handle_client_io(it_fd) == 1)
                     continue;
-            }
         }
+        // std::map<int, Connection>::iterator it_conn = connections.begin();
+        // while(it_conn != connections.end()){
+        //     // if(it_conn->second.is_processing || it_conn->second.mode == CLOSED){
+        //     //     ++it_conn;
+        //     //     continue;
+        //     // }
+        //         continue;
+        //     //it_conn->second.is_processing = true; // Mark as processing
+        //     it_conn++;
+        // }
+        //loog through the connections and handle the io
         check_connection_timeout();
     }
     

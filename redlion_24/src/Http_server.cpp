@@ -87,9 +87,10 @@ int Http_server::handle_client_io(int it_fd){
     Connection &conn = connections[events[it_fd].data.fd];
     char buffer[2048];
     ssize_t bytes;
-    if(events[it_fd].events & EPOLLIN){        
-        while((bytes = recv(events[it_fd].data.fd, buffer, sizeof(buffer), 0)) > 0)
-        {
+    if(events[it_fd].events & EPOLLIN){     
+        bytes = recv(events[it_fd].data.fd, buffer, sizeof(buffer), 0);   
+        //while((bytes = recv(events[it_fd].data.fd, buffer, sizeof(buffer), 0)) > 0)
+        //{
             // if(bytes == -1)
             //     return(1);
             if(!bytes)
@@ -102,7 +103,8 @@ int Http_server::handle_client_io(int it_fd){
                 return(0);
             }
             conn.buffer.append(buffer, bytes);
-        }
+            // std::cout << "Connection " << conn.fd << " bytes reading " <<conn.buffer.size() << std::endl;
+        //}
         while(can_parse_complete_request(conn.buffer)){
             //find the first end of the request then append it to the conn.request
             size_t end_headers;
@@ -256,7 +258,7 @@ void Http_server::check_connection_timeout(){
     std::map<int, Connection>::iterator it = connections.begin() ;
     while ( it != connections.end()){
         // std::cout  << "size map "<< connections.size() << std::endl;
-        if(current_time - it->second.last_activity > 30) {
+        if(current_time - it->second.last_activity > 360) {
             int fd_to_close = it->first; // Store the fd before incrementing the iterator
             std::map<int, Connection>::iterator to_erase = it;
             it++;

@@ -6,11 +6,64 @@
   <img src="http://127.0.0.1:8080/image.png">
 </body> -->
 
-<form action="http://localhost:8080/upload" method="POST">
+<!-- <form action="http://localhost:8080/upload" method="POST">
   <label for="name">Name:</label>
   <input type="text" id="name" name="username" placeholder="Enter your name" required />
   <button type="submit">Submit</button>
 </form>
 <body>
   <img src="http://127.0.0.1:8080/image.png" alt="Image">
+</body> -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GET, POST, DELETE Form</title>
+</head>
+<body>
+  <h1>HTTP Methods Demo</h1>
+
+  <!-- GET METHOD -->
+  <section>
+    <h2>GET Request</h2>
+    <form id="get-form" method="GET">
+      <label for="get-path">Enter file or folder path:</label>
+      <input type="text" id="get-path" name="path" placeholder="/path/to/file.txt">
+      <button type="submit">Send GET</button>
+    </form>
+  </section>
+
+  <hr>
+
+  <!-- POST METHOD -->
+  <section>
+    <h2>POST Request (Upload File)</h2>
+    <form action="/upload" method="POST" enctype="multipart/form-data">
+      <label for="post-file">Choose a file to upload:</label>
+      <input type="file" id="post-file" name="file">
+      <button type="submit">Send POST</button>
+    </form>
+  </section>
+
+  <hr>
+
+  <!-- DELETE METHOD -->
+  <section>
+    <h2>DELETE Request</h2>
+    <label for="delete-path">Enter path to delete:</label>
+    <input type="text" id="delete-path" placeholder="/path/to/delete.txt">
+    <button onclick="sendDelete()">Send DELETE</button>
+  </section>
+
+  <script>
+    function sendDelete() {
+      const path = document.getElementById('delete-path').value;
+      fetch(path, { method: 'DELETE' })
+        .then(res => res.text())
+        .then(data => alert("DELETE response:\n" + data))
+        .catch(err => alert("Error: " + err));
+    }
+  </script>
 </body>
+</html>

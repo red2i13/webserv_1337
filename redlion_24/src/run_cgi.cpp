@@ -74,6 +74,7 @@ int handle_cgi(HttpRequest &request, HttpResponse &response, Server_block &f) {
 		env_strings.push_back("REQUEST_METHOD=" + request.method);
 		std::cout << "REQUEST_METHOD: " << request.method << std::endl;
 		env_strings.push_back("REQUEST_URI=" + request.target);
+		env_strings.push_back("HTTP_COOKIE=" + request.cookies);	
 		env_strings.push_back("SERVER_NAME=localhost");
 		env_strings.push_back("SERVER_PORT=8080");	
 		env_strings.push_back("QUERY_STRING=" + request.query);

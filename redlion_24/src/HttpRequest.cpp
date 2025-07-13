@@ -45,6 +45,9 @@ bool HttpRequest::parse(const std::string &raw_request){
             std::string key = trim(line.substr(0, colon));
             std::string value = trim(line.substr(colon + 1));
             headers[to_lower(key)] = value;
+            if (to_lower(key) == "cookie") {
+                this->cookies = value;
+            }
             if(to_lower(key) == "connection") {
                 if (to_lower(value) == "close") {
                     is_keep_alive = false;
@@ -63,10 +66,10 @@ bool HttpRequest::parse_start_line(){
         return false;
 
     this->method = this->start_line.substr(0, first_space);
-    if (method != "GET" && method != "POST" && method != "DELETE"){
-        std::cout<<"Invalid method !"<<std::endl;
-        return (false);
-    }
+    // if (method != "GET" && method != "POST" && method != "DELETE"){
+    //     std::cout<<"Invalid method !"<<std::endl;
+    //     return (false);
+    // }
     size_t second_space = this->start_line.find(' ', first_space + 1);
     if (second_space == std::string::npos)
         return false;

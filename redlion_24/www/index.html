@@ -18,52 +18,113 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>GET, POST, DELETE Form</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HTTP Methods Handler</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 30px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    .section {
+      background: white;
+      padding: 20px;
+      margin-bottom: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: bold;
+    }
+
+    input[type="text"],
+    input[type="file"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    button {
+      padding: 10px 20px;
+      background: #007BFF;
+      border: none;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    .response {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #444;
+      background: #e9ecef;
+      padding: 10px;
+      border-radius: 5px;
+    }
+  </style>
 </head>
 <body>
-  <h1>HTTP Methods Demo</h1>
 
-  <!-- GET METHOD -->
-  <section>
-    <h2>GET Request</h2>
-    <form id="get-form" method="GET">
-      <label for="get-path">Enter file or folder path:</label>
-      <input type="text" id="get-path" name="path" placeholder="/path/to/file.txt">
-      <button type="submit">Send GET</button>
-    </form>
-  </section>
+  <h1>HTTP Methods: POST & DELETE</h1>
 
-  <hr>
-
-  <!-- POST METHOD -->
-  <section>
-    <h2>POST Request (Upload File)</h2>
+  <!-- POST Section -->
+  <div class="section">
+    <h2>POST - Upload a File</h2>
     <form action="/upload" method="POST" enctype="multipart/form-data">
-      <label for="post-file">Choose a file to upload:</label>
-      <input type="file" id="post-file" name="file">
-      <button type="submit">Send POST</button>
+      <label for="file-upload">Choose file to upload:</label>
+      <input type="file" id="file-upload" name="file" required />
+      <button type="submit">Upload</button>
     </form>
-  </section>
+  </div>
 
-  <hr>
-
-  <!-- DELETE METHOD -->
-  <section>
-    <h2>DELETE Request</h2>
-    <label for="delete-path">Enter path to delete:</label>
-    <input type="text" id="delete-path" placeholder="/path/to/delete.txt">
-    <button onclick="sendDelete()">Send DELETE</button>
-  </section>
+  <!-- DELETE Section -->
+  <div class="section">
+    <h2>DELETE - Remove a File or Folder</h2>
+    <label for="delete-path">Enter the path to delete:</label>
+    <input type="text" id="delete-path" placeholder="/path/to/delete" required />
+    <button onclick="sendDelete()">Delete</button>
+    <div id="delete-response" class="response" style="display: none;"></div>
+  </div>
 
   <script>
     function sendDelete() {
-      const path = document.getElementById('delete-path').value;
-      fetch(path, { method: 'DELETE' })
-        .then(res => res.text())
-        .then(data => alert("DELETE response:\n" + data))
-        .catch(err => alert("Error: " + err));
+      const path = document.getElementById("delete-path").value;
+      if (!path) {
+        alert("Please enter a path.");
+        return;
+      }
+
+      fetch(path, {
+        method: "DELETE"
+      })
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("delete-response").style.display = "block";
+        document.getElementById("delete-response").innerText = "Response: " + data;
+      })
+      .catch(error => {
+        document.getElementById("delete-response").style.display = "block";
+        document.getElementById("delete-response").innerText = "Error: " + error;
+      });
     }
   </script>
+
 </body>
 </html>
+

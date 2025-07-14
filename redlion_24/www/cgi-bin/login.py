@@ -2,38 +2,48 @@
 
 import os
 import sys
-import cgi
 import http.cookies
 import shelve
 import time
+from urllib.parse import parse_qs
 
 SESSION_DB = "/tmp/session_data"
 SESSION_TIMEOUT = 600  # 10 minutes
 
-form = cgi.FieldStorage()  # <== You were missing this line
+# ==== Read POST data if needed ====
+method = os.environ.get("REQUEST_METHOD", "")
+if method == "POST":
+    content_length = int(os.environ.get("CONTENT_LENGTH", 0))
+    post_data = sys.stdin.read(content_length)
+    form = parse_qs(post_data)
+else:
+    form = {}
+
+# ==== Parse cookies ====
 cookie = http.cookies.SimpleCookie(os.environ.get("HTTP_COOKIE", ""))
 session_cookie = cookie.get("session_id")
 
-# ======= LOGOUT HANDLER =======
-if os.environ.get("REQUEST_METHOD", "") == "POST" and form.getvalue("logout") == "1":
+# ==== Handle logout ====
+if form.get("logout", ["0"])[0] == "1":
     if session_cookie:
         session_id = session_cookie.value
         with shelve.open(SESSION_DB, writeback=True) as sessions:
             if session_id in sessions:
                 del sessions[session_id]
     print("Status: 303 See Other")
-    print("Set-Cookie: session_id=; Max-Age=0; HttpOnly")
+    print("Set-Cookie: session_id=; Max-Age=0; HttpOnly; Path=/")
     print("Location: /login.py")
     print()
     sys.exit(0)
 
-
+# ==== No session cookie? redirect ====
 if not session_cookie:
     print("Status: 303 See Other")
     print("Location: /login.py")
     print()
     sys.exit(0)
 
+# ==== Session check ====
 session_id = session_cookie.value
 current_time = time.time()
 
@@ -49,7 +59,7 @@ with shelve.open(SESSION_DB, writeback=True) as sessions:
     if current_time - session["last_seen"] > SESSION_TIMEOUT:
         del sessions[session_id]
         print("Status: 303 See Other")
-        print("Set-Cookie: session_id=; Max-Age=0; HttpOnly")
+        print("Set-Cookie: session_id=; Max-Age=0; HttpOnly; Path=/")
         print("Location: /login.py")
         print()
         sys.exit(0)
@@ -58,8 +68,9 @@ with shelve.open(SESSION_DB, writeback=True) as sessions:
     session["visits"] += 1
     sessions[session_id] = session
 
+# ==== Output final HTML ====
 print("Content-Type: text/html")
-print(f"Set-Cookie: session_id={session_id}; Max-Age={SESSION_TIMEOUT}; HttpOnly")
+print(f"Set-Cookie: session_id={session_id}; Max-Age={SESSION_TIMEOUT}; HttpOnly; Path=/")
 print()
 print(f"""
 <html>
@@ -68,9 +79,10 @@ print(f"""
     <h1>Welcome, {session['username']}!</h1>
     <p>You have visited this dashboard {session['visits']} times.</p>
     <p>Last active: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(session['last_seen']))}</p>
-   <form method="POST" action="/logout.py">
-    <button type="submit">Logout</button>
-</form>
+    <form method="POST" action="/cgi-bin/dashbord.py">
+        <input type="hidden" name="logout" value="1">
+        <button type="submit">Logout</button>
+    </form>
 </body>
 </html>
 """)

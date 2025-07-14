@@ -6,21 +6,24 @@ import time
 
 print("Content-Type: text/html")
 
-# ====== Handle Cookies ======
 cookie = http.cookies.SimpleCookie(os.environ.get("HTTP_COOKIE", ""))
-session_id = cookie.get("session_id")
+session_cookie = cookie.get("session_id")
+visit_cookie = cookie.get("visits")
 
-if not session_id:
+if session_cookie:
+    session_id_value = session_cookie.value
+else:
     session_id_value = str(int(time.time()))
     print(f"Set-Cookie: session_id={session_id_value}; Max-Age=600; HttpOnly")
-    visit_count = 1
-else:
-    session_id_value = session_id.value
-    visit_count = int(cookie.get("visits", "1").value) + 1
-    print(f"Set-Cookie: session_id={session_id_value}; Max-Age=600; HttpOnly")
-    print(f"Set-Cookie: visits={visit_count}; Max-Age=600; HttpOnly")
 
+if visit_cookie:
+    visit_count = int(visit_cookie.value) + 1
+else:
+    visit_count = 1
+
+print(f"Set-Cookie: visits={visit_count}; Max-Age=600; HttpOnly")
 print()  # End of headers
+
 print(f"""
 <html>
 <head><title>CGI Test</title></head>

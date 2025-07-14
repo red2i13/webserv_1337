@@ -46,7 +46,8 @@ bool HttpRequest::parse(const std::string &raw_request){
             std::string value = trim(line.substr(colon + 1));
             headers[to_lower(key)] = value;
             if (to_lower(key) == "cookie") {
-                this->cookies = value;
+                //this->cookies = value;
+                this->cookies = headers["cookie"];
             }
             if(to_lower(key) == "connection") {
                 if (to_lower(value) == "close") {

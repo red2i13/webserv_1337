@@ -77,7 +77,7 @@ int handle_cgi(HttpRequest &request, HttpResponse &response, Server_block &f) {
 		env_strings.push_back("HTTP_COOKIE=" + request.cookies);	
 		// std::cout << " <<<<<<<<<<< i'm here >>>>>>>>>>>>>" << std::endl;
 		std::cout << "HTTP_COOKIE: " << request.cookies << std::endl;
-		env_strings.push_back("HTTP_USER_AGENT=" + request.headers["User-Agent"]);
+		env_strings.push_back("HTTP_USER_AGENT=" + request.headers["user-Agent"]);
 		//std::cout << "HTTP_USER_AGENT: " << request.headers["User-Agent"] << std::endl;
 		env_strings.push_back("SERVER_NAME=localhost");
 		env_strings.push_back("SERVER_PORT=8080");	
@@ -165,7 +165,8 @@ int handle_cgi(HttpRequest &request, HttpResponse &response, Server_block &f) {
 			std::istringstream header_stream(header_block);
 			std::string line;
 
-			while (std::getline(header_stream, line) && !line.empty()) {
+			while (std::getline(header_stream, line) && !line.empty())
+			{
 				size_t colon = line.find(":");
 				if (colon != std::string::npos) {
 					std::string key = line.substr(0, colon);
@@ -174,7 +175,13 @@ int handle_cgi(HttpRequest &request, HttpResponse &response, Server_block &f) {
 					key.erase(key.find_last_not_of(" \t") + 1);
 					value.erase(0, value.find_first_not_of(" \t"));
 					value.erase(value.find_last_not_of(" \t") + 1);
-					response.set_header(key, value);
+
+					if (key == "Set-Cookie") {
+						response.headers.insert(std::make_pair(key, value));
+					} 
+					else {
+						response.set_header(key, value);
+					}
 				}
 			}
 

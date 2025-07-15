@@ -227,12 +227,12 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
 
         return;
     }
-    char cwd[PATH_MAX];
-    if (getcwd(cwd, sizeof(cwd)) != 0) {
-        f.upload_path = cwd;
-    }
+    // char cwd[PATH_MAX];
+    // if (getcwd(cwd, sizeof(cwd)) != 0) {
+    //     f.upload_path = cwd;
+    // }
     std::string filename = "upload.txt";
-    std::string full_path = f.upload_path + "/www/upload/" + filename;
+    std::string full_path = f.upload_path + filename;
     std::ofstream file(full_path.c_str(), std::ios::binary);
     if (!file) {
         res.set_status(500, "Internal Server Error");

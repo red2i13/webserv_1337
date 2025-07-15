@@ -185,6 +185,7 @@ int Http_server::handle_client_io(int it_fd){
 }
 
 int Http_server::socket_main_loop(){
+    //print location blocks and their values
     int c_fd;
     struct sockaddr_in c_addr;
     int len_c_addr = sizeof(c_addr);
@@ -225,7 +226,7 @@ int Http_server::socket_main_loop(){
                 epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
                 connections.erase(events[it_fd].data.fd);
             }
-            if(checkIfListen(events[it_fd].data.fd))
+            else if(checkIfListen(events[it_fd].data.fd))
             {
                 c_fd = accept(events[it_fd].data.fd, reinterpret_cast<struct sockaddr *>(&c_addr), reinterpret_cast<socklen_t*>(&len_c_addr));      
                 std::cout << "setting fd return " << make_socket_nonblocking(c_fd) << std::endl;
@@ -242,16 +243,6 @@ int Http_server::socket_main_loop(){
                 if(handle_client_io(it_fd) == 1)
                     continue;
         }
-        // std::map<int, Connection>::iterator it_conn = connections.begin();
-        // while(it_conn != connections.end()){
-        //     // if(it_conn->second.is_processing || it_conn->second.mode == CLOSED){
-        //     //     ++it_conn;
-        //     //     continue;
-        //     // }
-        //         continue;
-        //     //it_conn->second.is_processing = true; // Mark as processing
-        //     it_conn++;
-        // }
         //loog through the connections and handle the io
         check_connection_timeout();
     }
@@ -277,12 +268,6 @@ void Http_server::check_connection_timeout(){
             ++it;
    
     }
-}
-Http_server::Http_server(){
-    Server_block *def = new Server_block();
-    Server_block *def1 = new Server_block("test", 80);
-    blocks.push_back(def);
-    blocks.push_back(def1);
 }
 
 Connection::Connection(int n_fd, Server_block *ptr, cnx_mode m)  : fd(n_fd),is_processing(false), last_activity(time(0)) , buffer(), requests(), responses(), mode(m), server(ptr) {
@@ -318,7 +303,7 @@ int Http_server::check_init_http_server(){
             for(size_t j = 0; j < ptr->size() ; j++){
                 if((*ptr)[j].name == "server")
                 {
-                    Server_block *new_svb = new Server_block();
+                    Server_block *new_svb = new Server_block("blank server");
                     n_dir = &(*ptr)[j].children;
                     for(size_t k = 0; k < (*n_dir).size(); k++){
                         if((*n_dir)[k].name == "server_name")
@@ -328,13 +313,13 @@ int Http_server::check_init_http_server(){
                         else  if((*n_dir)[k].name == "listen")
                             new_svb->set_ip_host((*n_dir)[k].values);
                         else  if((*n_dir)[k].name == "location")
-                        {
                             new_svb->set_location((*n_dir)[k].values[0], (*n_dir)[k].children[0].values);
-                        }
                         else if((*n_dir)[k].name == "autoindex")
                             new_svb->set_dir_listen((*n_dir)[k].values[0] == "on");
                         else if((*n_dir)[k].name == "post_dir")
                             new_svb->set_upload_path((*n_dir)[k].values);
+                        else  if((*n_dir)[k].name == "keepalive_timeout")
+                            new_svb->set_timeout(atoi((*n_dir)[k].values[0].c_str()));
                     }
                     blocks.push_back(new_svb);
                 }

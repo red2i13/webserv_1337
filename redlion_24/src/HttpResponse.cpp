@@ -141,7 +141,25 @@ void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f) {
         res.set_body(get_error_page(403));
     }
 }
+////////////////
+std::string int_to_string(int n) {
+	std::stringstream ss;
+	ss << n;
+	return ss.str();
+}
 
+void HttpResponse::set_error(int code, const std::string& message, const std::string& extra) {
+	this->set_status(code, message);
+	this->set_header("Content-Type", "text/html");
+	this->set_body("<html><body><h1>" + int_to_string(code) + " " + message + "</h1><p>" + extra + "</p></body></html>");
+}
+
+void HttpResponse::set_success(int code, const std::string& message) {
+	this->set_status(code, message);
+	this->set_header("Content-Type", "text/html");
+	this->set_body("<html><body><h1>" + int_to_string(code) + " " + message + "</h1></body></html>");
+}
+////////////////
 
 void HttpResponse::set_status(int code, const std::string& message) {
     this->status_code = code;

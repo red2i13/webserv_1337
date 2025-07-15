@@ -10,9 +10,6 @@ print("<html><body><h1>Upload a File</h1>")
 
 form = cgi.FieldStorage()
 
-# Debug: print form keys
-print(f"Form keys: {list(form.keys())}<br>")
-
 if os.environ.get("REQUEST_METHOD", "") == "POST":
     if "file" in form:
         print("Processing uploaded file...<br>")

@@ -14,7 +14,12 @@ struct sockaddr_in *Server_block::get_ip_addr(){
 std::vector<std::string> Server_block::get_Snames() const{
 	return(server_names);
 }
-
+std::map<std::string, std::vector<std::string> > Server_block::get_location_blocks() const {
+	return location_blocks;
+}
+void Server_block::set_timeout(int t){
+	timeout = t;
+}
 //default constructor add local host and port 80 as basic server block
 Server_block::Server_block(){
 	server_names.push_back("localhost");
@@ -24,18 +29,32 @@ Server_block::Server_block(){
 	server_ip.sin_port = htons(8080);
 	index_flag = false;
 	upload_flag = false;
-}
+	timeout = 60; // Default timeout
+	upload_path = "/tmp"; // Default upload path
+	//set root path to current directory
+	char cwd[1024];
+	if (getcwd(cwd, sizeof(cwd)) != NULL) {
+		root_path = cwd;
+	} else {
+		perror("getcwd() error");
+	}
 
-Server_block::Server_block(std::string name_server, int port){
-	(void)port;
-	(void)name_server;
-	server_names.push_back("barca");
-	server_names.push_back("barcelona");
-	server_ip.sin_family = AF_INET;
-	server_ip.sin_addr.s_addr = INADDR_ANY;
-	server_ip.sin_port = htons(4221);
+}
+Server_block::Server_block(std::string blank){
+	(void)blank;
 	index_flag = false;
 	upload_flag = false;
+	server_ip.sin_family = AF_INET;
+	server_ip.sin_addr.s_addr = INADDR_ANY;
+	timeout = 60; // Default timeout
+	upload_path = "/tmp"; // Default upload path
+	//set root path to current directory
+	char cwd[1024];
+	if (getcwd(cwd, sizeof(cwd)) != NULL) {
+		root_path = cwd;
+	} else {
+		perror("getcwd() error");
+	}
 }
 
 void  Server_block::set_sname(std::vector <std::string> &vect){
@@ -74,10 +93,12 @@ void Server_block::set_ip_host(std::vector <std::string> &vect){
 		}
 	}
 }
-//paramertized constructor for init ip and port and server name in one go
-// Server_block::Server_block(std::string ip, std::string port,std::vector<std::string> server_names, bool index){}
-
-
+std::string Server_block::get_root_path() const{
+	return root_path;
+}
+void Server_block::set_root_path(const std::string &path) {
+	root_path = path;
+}
 //deconstructor for freeing any dynamic allocation
 Server_block::~Server_block(){}
 //copy constructors could be useful in the future

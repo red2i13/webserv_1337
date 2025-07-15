@@ -36,10 +36,7 @@ void handle_request(HttpRequest &req, HttpResponse &res, Server_block &flag) {
     if (req.method == "GET")
         handle_get(req, res, flag);
     else if (req.method == "POST")
-    {
-        std::cout<<"im a here!"<<std::endl;
         handle_post(req, res, flag);
-    }
     else if (req.method == "DELETE")
         handle_delete(req, res);
     else {
@@ -195,7 +192,6 @@ std::string generate_directory_listing(const std::string& path, const std::strin
 }
 
 void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
-    std::cout << f.upload_flag << std::endl;
     if (!f.upload_flag)
     {
         res.set_status(403, "Forbidden");

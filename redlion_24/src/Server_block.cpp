@@ -31,6 +31,14 @@ Server_block::Server_block(){
 	upload_flag = false;
 	timeout = 60; // Default timeout
 	upload_path = "/tmp"; // Default upload path
+	//set root path to current directory
+	char cwd[1024];
+	if (getcwd(cwd, sizeof(cwd)) != NULL) {
+		root_path = cwd;
+	} else {
+		perror("getcwd() error");
+	}
+
 }
 Server_block::Server_block(std::string blank){
 	(void)blank;
@@ -40,6 +48,13 @@ Server_block::Server_block(std::string blank){
 	server_ip.sin_addr.s_addr = INADDR_ANY;
 	timeout = 60; // Default timeout
 	upload_path = "/tmp"; // Default upload path
+	//set root path to current directory
+	char cwd[1024];
+	if (getcwd(cwd, sizeof(cwd)) != NULL) {
+		root_path = cwd;
+	} else {
+		perror("getcwd() error");
+	}
 }
 
 void  Server_block::set_sname(std::vector <std::string> &vect){
@@ -77,6 +92,12 @@ void Server_block::set_ip_host(std::vector <std::string> &vect){
 		
 		}
 	}
+}
+std::string Server_block::get_root_path() const{
+	return root_path;
+}
+void Server_block::set_root_path(const std::string &path) {
+	root_path = path;
 }
 //deconstructor for freeing any dynamic allocation
 Server_block::~Server_block(){}

@@ -126,10 +126,10 @@ int Http_server::handle_client_io(int it_fd){
             }
             std::cout << "==============" << conn.buffer << "================" << std::endl;
             conn.requests.push(req);
-            std::cout << "Headers:" << std::endl;
-            for (std::map<std::string, std::string>::iterator it = conn.requests.front().headers.begin(); it != conn.requests.front().headers.end(); ++it) {
-                std::cout << it->first << ": " << it->second << std::endl;
-            }
+            // std::cout << "Headers:" << std::endl;
+            // for (std::map<std::string, std::string>::iterator it = conn.requests.front().headers.begin(); it != conn.requests.front().headers.end(); ++it) {
+            //     std::cout << it->first << ": " << it->second << std::endl;
+            // }
             conn.buffer.erase(0, end_request); // Remove the parsed request from
         }
         conn.mode = READING;
@@ -321,6 +321,14 @@ int Http_server::check_init_http_server(){
                             new_svb->set_upload_path((*n_dir)[k].values);
                         else  if((*n_dir)[k].name == "keepalive_timeout")
                             new_svb->set_timeout(atoi((*n_dir)[k].values[0].c_str()));
+                        else if ((*n_dir)[k].name == "root")
+                            new_svb->set_root_path((*n_dir)[k].values[0]);
+                        // else if ((*n_dir)[k].name == "index")
+                        //     new_svb->index_flag = true;
+                        // else if ((*n_dir)[k].name == "upload")
+                        //     new_svb->upload_flag = true;
+                        // else if ((*n_dir)[k].name == "cgi")
+                        //     new_svb->cgi_flag = true;
                     }
                     blocks.push_back(new_svb);
                 }

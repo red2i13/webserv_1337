@@ -82,7 +82,27 @@ std::string get_mime_type(const std::string& path) {
 
 
 void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f) {
-    std::string path = "./www" + req.target;
+    //search for the correct file in location map
+    //here
+    std::cout << "GET request for: " << req.target << std::endl;
+    std::map<std::string, std::vector<std::string> > location_blocks = f.get_location_blocks();
+    std::map<std::string, std::vector<std::string> >::iterator it = location_blocks.find(req.target);
+    std::string path;// =  + req.target;
+    
+    if(it != location_blocks.end()) {
+        std::cout << "Found location block for: " << req.target << std::endl;
+        std::cout << it->first << " -> " << it->second[0] << std::endl;
+        path = f.get_root_path() + "/" + it->second[0] + req.target;
+        // Handle the request based on the location block
+        // For example, you can set headers or modify the response based on the location block
+    } else {
+        std::cout << "No specific location block found for: " << req.target << std::endl;
+        path = f.get_root_path() + req.target;
+        std::cout << "Using root path: " << path << std::endl;
+    }
+
+
+
 
     struct stat statbuf; //i check if the file or dir exist
     if (stat(path.c_str(), &statbuf) == -1) {
@@ -249,7 +269,8 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
     // if (getcwd(cwd, sizeof(cwd)) != 0) {
     //     f.upload_path = cwd;
     // }
-    std::string filename = "upload.txt";
+    std::cout << "---------------------Upload path: " << f.upload_path << std::endl;
+    std::string filename = "/upload.txt";
     std::string full_path = f.upload_path + filename;
     std::ofstream file(full_path.c_str(), std::ios::binary);
     if (!file) {

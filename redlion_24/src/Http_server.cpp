@@ -124,6 +124,7 @@ int Http_server::handle_client_io(int it_fd){
             if(!req.parse(conn.buffer.substr(0, end_request))){
                 req.bad_req = true;
             }
+            std::cout << "==============" << conn.buffer << "================" << std::endl;
             conn.requests.push(req);
             std::cout << "Headers:" << std::endl;
             for (std::map<std::string, std::string>::iterator it = conn.requests.front().headers.begin(); it != conn.requests.front().headers.end(); ++it) {

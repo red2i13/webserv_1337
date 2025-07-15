@@ -47,44 +47,21 @@ SESSION_TIMEOUT = 600  # 10 minutes
 
 cookie = http.cookies.SimpleCookie(os.environ.get("HTTP_COOKIE", ""))
 session_cookie = cookie.get("session_id")
+visit_cookie = cookie.get("visits")
 
-if not session_cookie:
-    # No session cookie, redirect to login
-    print("Status: 303 See Other")
-    print("Location: /cgi-bin/login.py")
-    print()
-    exit(0)
+if session_cookie:
+    session_id_value = session_cookie.value
+else:
+    session_id_value = str(int(time.time()))
+    print(f"Set-Cookie: session_id={session_id_value}; Max-Age=600; HttpOnly")
 
-session_id = session_cookie.value
-current_time = time.time()
+if visit_cookie:
+    visit_count = int(visit_cookie.value) + 1
+else:
+    visit_count = 1
 
-with shelve.open(SESSION_DB, writeback=True) as sessions:
-    session = sessions.get(session_id)
-
-    if not session:
-        # Invalid session, redirect to login
-        print("Status: 303 See Other")
-        print("Location: /cgi-bin/login.py")
-        print()
-        exit(0)
-
-    if current_time - session["last_seen"] > SESSION_TIMEOUT:
-        # Session expired, delete session, redirect to login
-        del sessions[session_id]
-        print("Status: 303 See Other")
-        print("Set-Cookie: session_id=; Max-Age=0; HttpOnly; Path=/")
-        print("Location: /cgi-bin/login.py")
-        print()
-        exit(0)
-
-    # Update session activity and visits
-    session["last_seen"] = current_time
-    session["visits"] += 1
-    sessions[session_id] = session
-
-# Set cookie with updated expiry
-print(f"Set-Cookie: session_id={session_id}; Max-Age={SESSION_TIMEOUT}; HttpOnly; Path=/")
-print()
+print(f"Set-Cookie: visits={visit_count}; Max-Age=600; HttpOnly")
+print()  # End of headers
 
 print(f"""
 <html>

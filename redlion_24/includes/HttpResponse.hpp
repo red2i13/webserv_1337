@@ -20,7 +20,13 @@ class HttpResponse{
         void set_status(int code, const std::string& message);
         void set_header(const std::string& key, const std::string& value);
         void set_body(const std::string& body_content);
-};
+        /////////////
+        void set_error(int code, const std::string& message, const std::string& extra = "");
+        void set_success(int code, const std::string& message);
+        ///////////////
+    };
+
+std::string int_to_string(int n);
 void handle_request(HttpRequest &req, HttpResponse &res, Server_block &flag);
 void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f);
 void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f);

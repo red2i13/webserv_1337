@@ -277,9 +277,9 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
         if (pos != std::string::npos)
         boundary = "--" + content_type.substr(pos + 9); // skip "boundary="
         
-        char cwd[PATH_MAX];
-        if (getcwd(cwd, sizeof(cwd)) != 0)
-        f.upload_path = cwd;
+        // char cwd[PATH_MAX];
+        // if (getcwd(cwd, sizeof(cwd)) != 0)
+        // f.upload_path = cwd;
         
         body_data = req.body;
         handle_multiple_form(body_data, boundary, res, f.upload_path);
@@ -486,7 +486,7 @@ void handle_multiple_form(const std::string& body, const std::string& boundary, 
             }
 
             // Write to upload directory
-            std::string full_path = upload_dir + "/www/upload/" + filename;
+            std::string full_path = upload_dir + filename;
             std::cout<< full_path << std::endl;
             std::ofstream out(full_path.c_str(), std::ios::binary);
             if (!out) {

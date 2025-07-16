@@ -5,6 +5,9 @@ int Server_Conf_Parser::read_data(){
 	//todo return a fail state in a seperate log file when an error occur while reading
 	std::fstream file(file_name.c_str(), std::fstream::in);
 	std::string line;
+	if (!file.is_open()) {
+		return 1;
+	}
 	while (getline(file , line))
 	{
 		f.push_back(line);
@@ -13,22 +16,7 @@ int Server_Conf_Parser::read_data(){
 		return(1);
 	return(0);
 }
-/*
-#include <iostream>
 
-int main()
-{
-    std::string tt = "     hello world";
-	size_t gg = tt.find_first_not_of(" \t\n\v\f\r");
-	tt.erase(0, gg);
-	size_t kk = tt.find_last_not_of(" \t\n\v\f\r");
-    std::cout << "the last whitspace index is " << kk << " and size of string " << tt.size() << std::endl;
-    tt.erase(kk + 1, tt.size() - 1);
-	std::cout << tt << ")" << std::endl;
-
-    return 0;
-}
-*/
 int Server_Conf_Parser::clean_data(){
 	for(size_t i  = 0; i < f.size(); i++){
 		//skip comment and go to the next line

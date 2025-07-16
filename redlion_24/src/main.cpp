@@ -7,7 +7,7 @@
 //build a simple one listener server
 //add multiple host servers
 //handle all the errors mangement bad connctions , socket c function failing etc...
-
+//check the hangup of the client using nc
 
 int main(int ac, char *av[])
 {

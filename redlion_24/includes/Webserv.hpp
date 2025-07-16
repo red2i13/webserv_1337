@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <cerrno>
 #include <string>
 #include <vector>
 #include <sys/socket.h>

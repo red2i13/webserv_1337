@@ -77,27 +77,77 @@ std::string get_mime_type(const std::string& path) {
     return "application/octet-stream";
 }
 
+std::string extract_directory_from_target(const std::string& target) {
+    size_t last_slash = target.rfind('/');
+    if (last_slash == std::string::npos)
+        return "/";
+    if (last_slash == target.length() - 1)
+        return target;
+    return target.substr(0, last_slash);
+}
+
 
 void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f) {
     //search for the correct file in location map
     //here
-    std::cout << "GET request for: " << req.target << std::endl;
+    // std::string location = extract_directory_from_target(req.target);
+    // std::cout << "GET request for: " << req.target << std::endl;
+    // std::map<std::string, std::vector<std::string> > location_blocks = f.get_location_blocks();
+    // std::string path;// =  + req.target;
+    // std::map<std::string, std::vector<std::string> >::iterator it = location_blocks.begin();
+    // for (; it != location_blocks.end(); it++) {
+    //     if (it->first == location) {
+    //         std::cout << "Found location block for: " << req.target << std::endl;
+    //         std::cout << it->first << " -> " << it->second[0] << std::endl;
+    //         path = f.get_root_path() + "/" + it->second[0] + req.target;
+    //         break;
+    //     }
+    // }
+
+    // if(it != location_blocks.end()) {
+    //     std::cout << "Found location block for: " << req.target << std::endl;
+    //     std::cout << it->first << " -> " << it->second[0] << std::endl;
+    //     path = f.get_root_path() + "/" + it->second[0] + req.target;
+    //     // Handle the request based on the location block
+    //     // For example, you can set headers or modify the response based on the location block
+    // } else {
+    //     std::cout << "No specific location block found for: " << req.target << std::endl;
+    //     path = f.get_root_path() + req.target;
+    //     std::cout << "Using root path: " << path << std::endl;
+    // }
+
+    std::string location = extract_directory_from_target(req.target);
     std::map<std::string, std::vector<std::string> > location_blocks = f.get_location_blocks();
-    std::map<std::string, std::vector<std::string> >::iterator it = location_blocks.find(req.target);
-    std::string path;// =  + req.target;
-    
-    if(it != location_blocks.end()) {
-        std::cout << "Found location block for: " << req.target << std::endl;
-        std::cout << it->first << " -> " << it->second[0] << std::endl;
-        path = f.get_root_path() + "/" + it->second[0] + req.target;
-        // Handle the request based on the location block
-        // For example, you can set headers or modify the response based on the location block
-    } else {
-        std::cout << "No specific location block found for: " << req.target << std::endl;
-        path = f.get_root_path() + req.target;
-        std::cout << "Using root path: " << path << std::endl;
+    std::string path;
+
+    std::string root_path = f.get_root_path();
+    std::string target = req.target;
+
+    std::string base_dir = root_path;
+    if (location_blocks.count("/") > 0 && !location_blocks["/"].empty()) {
+        base_dir += "/" + location_blocks["/"][0];
     }
 
+    // Overwrite with more specific location if it exists
+    if (location_blocks.count(location) > 0 && !location_blocks[location].empty()) {
+        base_dir = root_path + "/" + location_blocks[location][0];
+    }
+
+    if (!base_dir.empty() && base_dir[base_dir.length() - 1] == '/' &&
+        !target.empty() && target[0] == '/')
+    {
+        path = base_dir + target.substr(1);
+    }
+    else
+    {
+        path = base_dir + target;
+    }
+
+
+    std::cout << "Target: " << target << std::endl;
+
+    std::cout << "GET request for: " << target << std::endl;
+    std::cout << "Resolved path: " << path << std::endl;
 
 
 

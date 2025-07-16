@@ -40,6 +40,11 @@ Server_block::Server_block(){
 	}
 
 }
+std::vector<std::string> Server_block::get_error_pages() const{
+	(void)error_pages;
+	return error_pages;
+}
+
 Server_block::Server_block(std::string blank){
 	(void)blank;
 	index_flag = false;

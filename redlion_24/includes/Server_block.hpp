@@ -18,6 +18,7 @@ class Server_block{
 		std::string upload_path;
 		struct sockaddr_in *get_ip_addr() ;
 		std::string get_root_path() const;
+		std::vector<std::string> get_error_pages() const;
 		std::map<std::string, std::vector<std::string> > get_location_blocks() const ;		std::vector<std::string> get_Snames() const;
 		void set_sname(std::vector <std::string> &vect);
 		void set_dir_listen(bool a);

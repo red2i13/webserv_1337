@@ -32,6 +32,6 @@ void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f);
 void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f);
 std::string generate_directory_listing(const std::string& path, const std::string& url_path);
 std::string decode_chunked_body(const std::string& raw);
-void handle_delete(HttpRequest& req, HttpResponse& res);
-void handle_multiple_form(const std::string& body, const std::string& boundary, HttpResponse& res, const std::string& upload_dir);
+void handle_delete(HttpRequest& req, HttpResponse& res, Server_block& f);
+void handle_multiple_form(const std::string& body, const std::string& boundary, HttpResponse& res, const std::string& upload_dir, Server_block& f);
 #endif

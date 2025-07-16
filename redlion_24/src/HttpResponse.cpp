@@ -9,8 +9,9 @@ std::string to_str(int value) {
     return oss.str();
 }
 
-std::string get_error_page(int code) {
-    std::string filepath = "www/error_pages/" + to_str(code) + ".html";
+std::string get_error_page(int code, Server_block &f) {
+    std::string filepath = f.get_root_path() + f.get_error_pages().back() + "/" + to_str(code) + ".html";
+    std::cout << "Looking for error page at: " << filepath << std::endl;
     std::ifstream file(filepath.c_str());
 
     if (file.is_open()) {
@@ -38,7 +39,7 @@ void handle_request(HttpRequest &req, HttpResponse &res, Server_block &flag) {
     else if (req.method == "POST")
         handle_post(req, res, flag);
     else if (req.method == "DELETE")
-        handle_delete(req, res);
+        handle_delete(req, res, flag);
     else {
         res.set_status(405, "Method Not Allowed");
         res.set_header("Content-Type", "text/html");
@@ -155,7 +156,7 @@ void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f) {
     if (stat(path.c_str(), &statbuf) == -1) {
         res.set_status(404, "Not Found");
         res.set_header("Content-Type", "text/html");
-        res.set_body(get_error_page(404));
+        res.set_body(get_error_page(404, f));
         return;
     }
 
@@ -174,7 +175,7 @@ void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f) {
         if (!req.target.empty() && req.target[req.target.length() - 1] != '/') {
             res.set_status(301, "Moved Permanently");
             res.set_header("Location", req.target + "/");
-            res.set_body(get_error_page(301));
+            res.set_body(get_error_page(301, f));
             return;
         }
 
@@ -199,13 +200,13 @@ void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f) {
         else{
             res.set_status(403, "Forbidden");
             res.set_header("Content-Type", "text/html");
-            res.set_body(get_error_page(403));
+            res.set_body(get_error_page(403, f));
         }
     } else {
         // Neither file nor dir
         res.set_status(403, "Forbidden");
         res.set_header("Content-Type", "text/html");
-        res.set_body(get_error_page(403));
+        res.set_body(get_error_page(403, f));
     }
 }
 ////////////////
@@ -266,7 +267,7 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
     {
         res.set_status(403, "Forbidden");
         res.set_header("Content-Type", "text/html");
-        res.set_body(get_error_page(403));
+        res.set_body(get_error_page(403, f));
         return;
     }
     std::string body_data;
@@ -282,7 +283,7 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
         // f.upload_path = cwd;
         
         body_data = req.body;
-        handle_multiple_form(body_data, boundary, res, f.upload_path);
+        handle_multiple_form(body_data, boundary, res, f.upload_path, f);
         return;
     }
 
@@ -298,7 +299,7 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
         if (body_data.empty())
         {
             res.set_status(400, "Bad Request");
-            res.set_body(get_error_page(400));
+            res.set_body(get_error_page(400, f));
 
             return;
         }
@@ -307,7 +308,7 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
     {
         res.set_status(411, "Length Required");
         res.set_header("Content-Type", "text/html");
-        res.set_body(get_error_page(411));
+        res.set_body(get_error_page(411, f));
 
         return;
     }
@@ -321,7 +322,7 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
     std::ofstream file(full_path.c_str(), std::ios::binary);
     if (!file) {
         res.set_status(500, "Internal Server Error");
-        res.set_body(get_error_page(500));
+        res.set_body(get_error_page(500, f));
         return;
     }
     file << body_data;
@@ -353,19 +354,19 @@ std::string decode_chunked_body(const std::string& raw) {
     return decoded;
 }
 
-void handle_delete(HttpRequest &req, HttpResponse &res) {
+void handle_delete(HttpRequest &req, HttpResponse &res, Server_block &f) {
     std::string path = "./www" + req.target;
     struct stat s;
     if (stat(path.c_str(), &s) != 0) {
         res.set_status(404, "Not Found");
-        res.set_body(get_error_page(404));
+        res.set_body(get_error_page(404, f));
         return;
     }
 
     if (S_ISREG(s.st_mode)) {
         if (unlink(path.c_str()) != 0) {
             res.set_status(500, "Internal Server Error");
-            res.set_body(get_error_page(500));
+            res.set_body(get_error_page(500, f));
             return;
         }
         res.set_status(204, "No Content"); // File deleted
@@ -376,18 +377,18 @@ void handle_delete(HttpRequest &req, HttpResponse &res) {
         // URI must end with a slash for directories
         if (req.target.empty() || req.target[req.target.size() - 1] != '/') {
             res.set_status(409, "Conflict");
-            res.set_body(get_error_page(409));
+            res.set_body(get_error_page(409, f));
 
             return;
         }
         if (access(path.c_str(), W_OK) != 0) {
             res.set_status(403, "Forbidden");
-            res.set_body(get_error_page(403));
+            res.set_body(get_error_page(403, f));
             return;
         }
         if (rmdir(path.c_str()) != 0) {
             res.set_status(500, "Internal Server Error");
-            res.set_body(get_error_page(500));
+            res.set_body(get_error_page(500, f));
             return;
         }
         res.set_status(204, "No Content"); // Dir deleted
@@ -395,11 +396,11 @@ void handle_delete(HttpRequest &req, HttpResponse &res) {
     }
 
     res.set_status(500, "Internal Server Error");
-    res.set_body(get_error_page(500));
+    res.set_body(get_error_page(500, f));
 }
 
 
-void handle_multipart_form(const std::string& body, const std::string& boundary, HttpResponse& res) {
+void handle_multipart_form(const std::string& body, const std::string& boundary, HttpResponse& res, Server_block& f) {
     size_t start = 0;
     size_t end = 0;
 
@@ -436,7 +437,7 @@ void handle_multipart_form(const std::string& body, const std::string& boundary,
             std::ofstream out(full_path.c_str(), std::ios::binary);
             if (!out) {
                 res.set_status(500, "Internal Server Error");
-                res.set_body(get_error_page(500));
+                res.set_body(get_error_page(500, f));
                 return;
             }
             out << content;
@@ -450,7 +451,7 @@ void handle_multipart_form(const std::string& body, const std::string& boundary,
 }
 
 
-void handle_multiple_form(const std::string& body, const std::string& boundary, HttpResponse& res, const std::string& upload_dir) {
+void handle_multiple_form(const std::string& body, const std::string& boundary, HttpResponse& res, const std::string& upload_dir, Server_block& f) {
     size_t start = 0;
     size_t end = 0;
     while ((start = body.find(boundary, end)) != std::string::npos) {
@@ -491,7 +492,7 @@ void handle_multiple_form(const std::string& body, const std::string& boundary, 
             std::ofstream out(full_path.c_str(), std::ios::binary);
             if (!out) {
                 res.set_status(500, "Internal Server Error");
-                res.set_body(get_error_page(500));
+                res.set_body(get_error_page(500, f));
                 return;
             }
             out << content;

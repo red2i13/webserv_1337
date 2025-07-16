@@ -51,16 +51,16 @@ class Http_server{
         ~Http_server();
         // Http_server(const Http_server &obj);
         // Http_server & operator=(const Http_server &obj);
+        // int process_request(HttpRequest &req, Connection &conn);
+        // int get_block_id(int fd);
         void check_connection_timeout();
         int can_parse_complete_request(const std::string &buffer);
         int init_server_blocks();
         int check_init_http_server();
         int socket_main_loop();
         int checkIfListen(int fd);
-        int get_block_id(int fd);
         int handle_client_io(int fd);
         int make_socket_nonblocking(int fd);
-        int process_request(HttpRequest &req, Connection &conn);
         class ParsingFails : public std::exception{
             virtual const char* what() const throw();
 	};

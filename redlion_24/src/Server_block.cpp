@@ -123,12 +123,35 @@ void Server_block::set_location(std::string directory, std::vector <std::string>
 		std::cout << "Invalid location, using default location" << std::endl;
 	}
 }
+bool isDirectory(const char *path) {
+    struct stat statbuf;
 
+    if (stat(path, &statbuf) != 0) {
+        std::cerr << "Error statting path " << path << ": " << strerror(errno) << std::endl;
+        return false; // Or throw an exception, depending on error handling strategy
+    }
+    return S_ISDIR(statbuf.st_mode);
+}
 void Server_block::set_upload_path(std::vector<std::string> &list) {
 	upload_flag = true;
 	if (list.size() == 1) {
-		upload_path = list[0];
-	} else {
-		std::cout << "Invalid upload path, using default path" << std::endl;
+		if (isDirectory(list[0].c_str())) {
+			//check if the path is relative or absolute
+			if (list[0][0] != '/') {
+				char cwd[1024];
+				if (getcwd(cwd, sizeof(cwd)) != NULL) {
+					upload_path = std::string(cwd) + "/" + list[0];
+			}
+			else
+				upload_path = list[0];
+			} 
+		else {
+			std::cerr << "Provided upload path is not a directory: " << list[0] << std::endl;
+			upload_path = "/tmp"; }
+		}
+	} 
+	else {
+		std::cerr << "Invalid upload path configuration, using default /tmp" << std::endl;
+		upload_path = "/tmp"; // Default upload path if the provided one is invalid
 	}
 }

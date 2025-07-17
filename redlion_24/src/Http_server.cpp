@@ -124,7 +124,7 @@ int Http_server::handle_client_io(int it_fd){
             if(!req.parse(conn.buffer.substr(0, end_request))){
                 req.bad_req = true;
             }
-            std::cout << "==============" << conn.buffer << "================" << std::endl;
+            // std::cout << "==============" << conn.buffer << "================" << std::endl;
             conn.requests.push(req);
             // std::cout << "Headers:" << std::endl;
             // for (std::map<std::string, std::string>::iterator it = conn.requests.front().headers.begin(); it != conn.requests.front().headers.end(); ++it) {
@@ -170,7 +170,8 @@ int Http_server::handle_client_io(int it_fd){
 
         std::string response_str = res.to_string();
         int byte_sent  = send(events[it_fd].data.fd, response_str.c_str(), response_str.length(), 0);
-        std::cout << "bytes sent "<< byte_sent  << std::endl; 
+        (void)byte_sent; // Suppress unused variable warning
+        // std::cout << "bytes sent "<< byte_sent  << std::endl; 
         if(conn.mode == CLOSED) 
         {
             std::cout << "i am closed\n";
@@ -340,5 +341,8 @@ int Http_server::check_init_http_server(){
 }
 
 Http_server::~Http_server(){
+    for (size_t i = 0; i < blocks.size(); ++i) {
+        delete blocks[i]; // Free dynamically allocated Server_block objects
+    }
     blocks.clear();
 }

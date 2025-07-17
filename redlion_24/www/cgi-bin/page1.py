@@ -25,7 +25,7 @@ print("""
 <html>
 <head><title>Welcome</title></head>
 <body>
-<h1>👋 First Visit</h1>
+<h1>TT First Visit</h1>
 <p>Thanks for visiting! You'll only see this once.</p>
 </body>
 </html>

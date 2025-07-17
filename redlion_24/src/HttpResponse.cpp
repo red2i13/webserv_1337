@@ -11,7 +11,7 @@ std::string to_str(int value) {
 
 std::string get_error_page(int code, Server_block &f) {
     std::string filepath = f.get_root_path() + f.get_error_pages().back() + "/" + to_str(code) + ".html";
-    std::cout << "Looking for error page at: " << filepath << std::endl;
+    // std::cout << "Looking for error page at: " << filepath << std::endl;
     std::ifstream file(filepath.c_str());
 
     if (file.is_open()) {
@@ -33,18 +33,27 @@ std::string get_error_page(int code, Server_block &f) {
 
 
 void handle_request(HttpRequest &req, HttpResponse &res, Server_block &flag) {
-    
-    if (req.method == "GET")
-        handle_get(req, res, flag);
-    else if (req.method == "POST")
-        handle_post(req, res, flag);
-    else if (req.method == "DELETE")
-        handle_delete(req, res, flag);
-    else {
-        res.set_status(405, "Method Not Allowed");
-        res.set_header("Content-Type", "text/html");
-        res.set_body("405 Method Not Allowed");
+    Location loc = flag.get_location_block(req.target);
+    std::vector<std::string> list =  loc.allowed_methods;
+    for(std::vector<std::string>::iterator it = list.begin(); it != list.end(); ++it) {
+        if (req.method == *it && req.method == "GET") {
+            handle_get(req, res, flag, loc.path);
+            return;
+
+        }
+        else if (req.method == *it && req.method == "POST"){
+            std::cout << "+++++++++++++++" << std::endl;
+            handle_post(req, res, flag, loc.upload_path);
+            return;
+        }
+        else if (req.method == *it && req.method == "DELETE"){
+            handle_delete(req, res, flag, loc.path);
+            return;
+        }
     }
+    res.set_status(405, "Method Not Allowed");
+    res.set_header("Content-Type", "text/html");
+    res.set_body("405 Method Not Allowed");
 }
 
 
@@ -88,28 +97,27 @@ std::string extract_directory_from_target(const std::string& target) {
 }
 
 
-void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f) {
-    std::string location = extract_directory_from_target(req.target);
+void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f, std::string location) {
+    // std::string location = extract_directory_from_target(req.target);
     // std::map<std::string, std::vector<std::string> > location_blocks = f.get_location_blocks();
     std::string path;
-    std::vector<Location> locations = f.get_location_block(location);
+    Location locations = f.get_location_block(location);
 
     std::string root_path;
-    for (size_t i = 0; i < locations.size(); i++) {
-        if (locations[i].path == location) {
-            root_path = locations[i].path;
-            break;
-        }
+    if (locations.path.empty()) {
+        root_path = f.get_root_path();
+    } else {
+        root_path = locations.path;
     }
     
     std::string target = req.target;
 
     std::string base_dir = root_path;
+    // std::cout << "Base directory: " << base_dir << std::endl;
     // if (location_blocks.count("/") > 0 && !location_blocks["/"].empty()) {
     //     base_dir += "/" + location_blocks["/"][0];
     // }
 
-    // Overwrite with more specific location if it exists
     // if (location_blocks.count(location) > 0 && !location_blocks[location].empty()) {
     //     base_dir = root_path + "/" + location_blocks[location][0];
     // }
@@ -125,10 +133,10 @@ void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f) {
     // }
 
 
-    std::cout << "Target: " << target << std::endl;
+    // std::cout << "Target: " << target << std::endl;
 
-    std::cout << "GET request for: " << target << std::endl;
-    std::cout << "Resolved path: " << path << std::endl;
+    // std::cout << "GET request for: " << target << std::endl;
+    // std::cout << "Resolved path: " << path << std::endl;
 
 
 
@@ -242,8 +250,12 @@ std::string generate_directory_listing(const std::string& path, const std::strin
     return ss.str();
 }
 
-void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
-    if (!f.upload_flag)
+void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f, std::string location = "") {
+    // std::string location = extract_directory_from_target(req.target);
+    Location locations = f.get_location_block(location);
+    std::cout << "LOOOOCATION  " << locations.upload_path << std::endl;
+
+    if (locations.upload_path.empty())
     {
         res.set_status(403, "Forbidden");
         res.set_header("Content-Type", "text/html");
@@ -258,28 +270,24 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
         if (pos != std::string::npos)
         boundary = "--" + content_type.substr(pos + 9);
         body_data = req.body;
-        if (body_data.size() > MAX_SIZE) {
+        if (body_data.size() > locations.max_body_size) {
+            res.set_header("Content-Type", "text/html");
             res.set_status(413, "Payload Too Large");
             res.set_body(get_error_page(413, f));
             return;
         }
 
         if (!boundary.empty())
-            handle_multiple_form(body_data, boundary, res, f.upload_path, f);
+            handle_multiple_form(body_data, boundary, res, locations.upload_path, f);
         else {
             res.set_status(400, "Bad Request");
             res.set_body(get_error_page(400, f));
         }
     }
 
-    if (req.headers.count("content-length"))
+    if (req.headers.count("transfer-encoding") && req.headers["transfer-encoding"] == "chunked")
     {
-        size_t content_length = atoi(req.headers["content-length"].c_str());
-        std::cout << "debug size content " << content_length << std::endl;
-        body_data = req.body.substr(0, content_length);
-    } 
-    else if (req.headers.count("transfer-encoding") && req.headers["transfer-encoding"] == "chunked")
-    {
+        // std::cout << "Handling chunked transfer encoding" << std::endl;
         body_data = decode_chunked_body(req.body);
         if (body_data.empty())
         {
@@ -289,6 +297,19 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
             return;
         }
     }
+    else if (req.headers.count("transfer-encoding") && req.headers["transfer-encoding"] != "chunked")
+    {
+        res.set_status(400, "Bad Request");
+        res.set_header("Content-Type", "text/html");
+        res.set_body(get_error_page(400, f));
+        return;
+    }
+    else if (req.headers.count("content-length"))
+    {
+        size_t content_length = atoi(req.headers["content-length"].c_str());
+        // std::cout << "debug size content " << req.body << std::endl;
+        body_data = req.body.substr(0, content_length);
+    } 
     else
     {
         res.set_status(411, "Length Required");
@@ -297,25 +318,24 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
 
         return;
     }
-    // char cwd[PATH_MAX];
-    // if (getcwd(cwd, sizeof(cwd)) != 0) {
-    //     f.upload_path = cwd;
-    // }
-    std::cout << "---------------------Upload path: " << f.upload_path << std::endl;
+    
+    std::cout << "---------------------Upload path: " << locations.upload_path << std::endl;
     std::string filename = "/upload.txt";
-    std::string full_path = f.upload_path + filename;
+    std::string full_path = locations.upload_path + filename;
+    // std::cout << "Full path: " << full_path << std::endl;
     std::ofstream file(full_path.c_str(), std::ios::binary);
     if (!file) {
         res.set_status(500, "Internal Server Error");
         res.set_body(get_error_page(500, f));
         return;
     }
+    // std::cout << "=============" << body_data << std::endl;
     file << body_data;
     file.close();
 
     res.set_status(201, "Created");
     res.set_header("Content-Type", "text/html");
-    res.set_body("Upload successful");
+    res.set_body(get_error_page(201, f));
 }
 
 std::string decode_chunked_body(const std::string& raw) {
@@ -339,8 +359,14 @@ std::string decode_chunked_body(const std::string& raw) {
     return decoded;
 }
 
-void handle_delete(HttpRequest &req, HttpResponse &res, Server_block &f) {
-    std::string path = "./www" + req.target;
+void handle_delete(HttpRequest &req, HttpResponse &res, Server_block &f, std::string location) {
+    // std::string location = extract_directory_from_target(req.target);
+    Location locations = f.get_location_block(location);
+    std::string path;
+    if (locations.path.empty())
+        path = "./www" + req.target;
+    else
+        path = locations.path + req.target;
     struct stat s;
     if (stat(path.c_str(), &s) != 0) {
         res.set_status(404, "Not Found");
@@ -384,58 +410,6 @@ void handle_delete(HttpRequest &req, HttpResponse &res, Server_block &f) {
     res.set_body(get_error_page(500, f));
 }
 
-
-void handle_multipart_form(const std::string& body, const std::string& boundary, HttpResponse& res, Server_block& f) {
-    size_t start = 0;
-    size_t end = 0;
-
-    while ((start = body.find(boundary, end)) != std::string::npos) {
-        start += boundary.length() + 2; // Skip boundary and CRLF
-        end = body.find(boundary, start);
-        if (end == std::string::npos)
-            break;
-
-        std::string part = body.substr(start, end - start);
-        
-        // Separate headers and content
-        size_t header_end = part.find("\r\n\r\n");
-        if (header_end == std::string::npos)
-            continue;
-
-        std::string headers = part.substr(0, header_end);
-        std::string content = part.substr(header_end + 4);
-
-        // Look for filename
-        size_t fn_pos = headers.find("filename=\"");
-        if (fn_pos != std::string::npos) {
-            fn_pos += 10;
-            size_t fn_end = headers.find("\"", fn_pos);
-            std::string filename = headers.substr(fn_pos, fn_end - fn_pos);
-
-            char cwd[PATH_MAX];
-            std::string upload_path;
-            if (getcwd(cwd, sizeof(cwd)) != 0)
-                upload_path = cwd;
-            
-            std::string full_path = upload_path + "/" + filename;
-            std::cout << "full path ::: "<< full_path <<std::endl;
-            std::ofstream out(full_path.c_str(), std::ios::binary);
-            if (!out) {
-                res.set_status(500, "Internal Server Error");
-                res.set_body(get_error_page(500, f));
-                return;
-            }
-            out << content;
-            out.close();
-        }
-    }
-
-    res.set_status(201, "Created");
-    res.set_header("Content-Type", "text/html");
-    res.set_body("File uploaded successfully.");
-}
-
-
 void handle_multiple_form(const std::string& body, const std::string& boundary, HttpResponse& res, const std::string& upload_dir, Server_block& f) {
     size_t start = 0;
     size_t end = 0;
@@ -473,7 +447,7 @@ void handle_multiple_form(const std::string& body, const std::string& boundary, 
 
             // Write to upload directory
             std::string full_path = upload_dir + filename;
-            std::cout<< full_path << std::endl;
+            // std::cout<< full_path << std::endl;
             std::ofstream out(full_path.c_str(), std::ios::binary);
             if (!out) {
                 res.set_status(500, "Internal Server Error");
@@ -487,5 +461,5 @@ void handle_multiple_form(const std::string& body, const std::string& boundary, 
 
     res.set_status(201, "Created");
     res.set_header("Content-Type", "text/html");
-    res.set_body("File uploaded successfully.");
+    res.set_body(get_error_page(201, f));
 }

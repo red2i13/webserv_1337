@@ -15,6 +15,7 @@
 #include "HttpResponse.hpp"
 #include "Server_block.hpp"
 #include <ctime>
+#include <filesystem> 
 // ==== Basic Structs ====
 // struct Request {
 // 	std::string method;
@@ -27,6 +28,7 @@
 class SessionManager {
 private:
 	std::map<std::string, int> sessions;
+	int visit_count;
 public:
 	std::string get_or_create_session_id(const std::string &client_cookie);
 	int get_visit_count(const std::string &session_id);

@@ -22,7 +22,7 @@ class Server_block{
 	private:
 		std::vector<std::string> server_names;
 		//map list for location blocks
-		std::map<std::string, std::vector<Location> > location_blocks;
+		std::map<std::string, Location> location_blocks;
 		std::vector<std::string> error_pages;
 		struct sockaddr_in server_ip;
 		std::string root_path;
@@ -34,8 +34,8 @@ class Server_block{
 		struct sockaddr_in *get_ip_addr() ;
 		std::string get_root_path() const;
 		std::vector<std::string> get_error_pages() const;
-		std::map<std::string, std::vector<Location> > get_locations_blocks() const ;		
-		std::vector<Location> get_location_block(std::string loc) const ;		
+		std::map<std::string, Location> get_locations_blocks() const ;		
+		Location get_location_block(std::string loc) const ;
 		std::vector<std::string> get_Snames() const;
 		void set_sname(std::vector <std::string> &vect);
 		void set_dir_listen(bool a);

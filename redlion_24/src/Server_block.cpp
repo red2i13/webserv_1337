@@ -14,10 +14,27 @@ struct sockaddr_in *Server_block::get_ip_addr(){
 std::vector<std::string> Server_block::get_Snames() const{
 	return(server_names);
 }
-std::vector<Location>Server_block::get_location_block(std::string loc) const {
-	return location_blocks.find(loc) != location_blocks.end() ? location_blocks.at(loc) : std::vector<Location>();
+Location Server_block::get_location_block(std::string loc) const {
+////	/upload -> /
+	//while in loc each time you don't find the location you subtract the last part of the location and check again
+	while(loc.size() > 1) {
+		if(location_blocks.find(loc) != location_blocks.end()) {
+			return location_blocks.at(loc);
+		}
+		size_t last_slash = loc.find_last_of('/');
+		if (last_slash == std::string::npos || last_slash == 0) {
+			return location_blocks.at("/"); // Return root location if no more slashes to remove
+		}
+		loc = loc.substr(0, last_slash); // Remove the last part of the location
+		if (loc.empty()) {
+			loc = "/"; // Ensure we don't end up with an empty string		
+		}
+	}
+
+	
+	return location_blocks.find(loc) != location_blocks.end() ? location_blocks.at(loc) : Location();
 }
-std::map<std::string, std::vector<Location> > Server_block::get_locations_blocks() const {
+std::map<std::string, Location> Server_block::get_locations_blocks() const {
 	return location_blocks;
 }		
 
@@ -109,7 +126,11 @@ void Server_block::set_root_path(const std::string &path) {
 	root_path = path;
 }
 //deconstructor for freeing any dynamic allocation
-Server_block::~Server_block(){}
+Server_block::~Server_block(){
+    error_pages.clear();
+    location_blocks.clear();
+    server_names.clear();
+}
 //copy constructors could be useful in the future
 Server_block::Server_block(const Server_block &obj){
 	(void)obj;
@@ -139,7 +160,7 @@ void Server_block::set_location(std::string directory, std::vector<ConfigNode> &
 		else if(children[i].name == "cgi_flag")
 			location.cgi_flag = (children[i].values[0] == "on");
 	}
-	location_blocks[directory].push_back(location);
+	location_blocks[directory] = location;
 }
 bool isDirectory(const char *path) {
     struct stat statbuf;

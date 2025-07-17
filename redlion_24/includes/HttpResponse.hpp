@@ -30,10 +30,10 @@ class HttpResponse{
 
 std::string int_to_string(int n);
 void handle_request(HttpRequest &req, HttpResponse &res, Server_block &flag);
-void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f);
-void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f);
+void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f, std::string location);
+void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f, std::string location);
 std::string generate_directory_listing(const std::string& path, const std::string& url_path);
 std::string decode_chunked_body(const std::string& raw);
-void handle_delete(HttpRequest& req, HttpResponse& res, Server_block& f);
+void handle_delete(HttpRequest& req, HttpResponse& res, Server_block& f, std::string location);
 void handle_multiple_form(const std::string& body, const std::string& boundary, HttpResponse& res, const std::string& upload_dir, Server_block& f);
 #endif

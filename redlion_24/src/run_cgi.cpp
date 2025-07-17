@@ -253,6 +253,7 @@ std::string SessionManager::get_or_create_session_id(const std::string &client_c
 	ss << std::time(0);
 	std::string new_id = ss.str();
 	sessions[new_id] = 1;
+
 	return new_id;
 }
 
@@ -264,12 +265,26 @@ void SessionManager::increment_visit(const std::string &session_id) {
 	sessions[session_id]++;
 }
 
-
+bool isDirectory(const std::string& path) {
+    struct stat info;
+    if (stat(path.c_str(), &info) != 0) { // stat returns 0 on success
+        return false; // Path doesn't exist or other error
+    }
+    return (info.st_mode & S_IFDIR) != 0; // Check if it's a directory
+}
 
 int handle_cgi(HttpRequest &request, HttpResponse &response, Server_block &f) {
-	std::string script_path = "./www" + request.target;
+	Location loc = f.get_location_block(request.target);
+	std::string script_path = loc.path + request.target;
 
+	if(isDirectory(script_path)) {
+		response.set_error(403, "Forbidden: CGI script is a directory");
+		return 1; 
+	}
+	// CHECK METHOD
 	if (request.method == "DELETE") {
+		response.set_error(405, "Method Not Allowed");
+		return 1;
 		if (access(script_path.c_str(), F_OK) == -1)
 		{
 			response.set_error(404, "File not found");
@@ -277,8 +292,6 @@ int handle_cgi(HttpRequest &request, HttpResponse &response, Server_block &f) {
 		}
 		if (unlink(script_path.c_str()) == -1)
 		{
-			response.set_error(500, "Cannot delete file");
-			return 1;
 		}
 		response.set_success(204, "");
 		return 0;
@@ -321,6 +334,7 @@ int handle_cgi(HttpRequest &request, HttpResponse &response, Server_block &f) {
 
 		// ========== Session ==========
 		std::string session_id = sessionManager.get_or_create_session_id(request.cookies);
+		//handle visit incrementiotion
 		sessionManager.increment_visit(session_id);
 		int visit_count = sessionManager.get_visit_count(session_id);
 		std::stringstream cookie_header;
@@ -362,7 +376,7 @@ int handle_cgi(HttpRequest &request, HttpResponse &response, Server_block &f) {
 
 		char *argv[] = { NULL, NULL, NULL };
 		if (!interpreter.empty()) {
-			argv[0] = strdup(interpreter.c_str());
+		argv[0] = strdup(interpreter.c_str());
 			argv[1] = strdup(script_path.c_str());
 			argv[2] = NULL;
 		} else {
@@ -378,7 +392,8 @@ int handle_cgi(HttpRequest &request, HttpResponse &response, Server_block &f) {
 	close(fd_out[1]);
 	if (request.method == "POST")
 	{
-		handle_post(request,response, f); // Assuming blocks[0] is the default server block
+		Location loc = f.get_location_block(request.target);
+		handle_post(request,response, f, loc.upload_path); // Assuming blocks[0] is the default server block
 		write(fd_in[1], request.body.c_str(), request.body.size());
 	}
 	else if (request.method == "GET")

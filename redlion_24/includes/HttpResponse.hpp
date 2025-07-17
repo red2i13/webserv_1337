@@ -8,6 +8,8 @@
 #include <sys/stat.h>
 #include <dirent.h>
 
+#define MAX_SIZE 1048576 // 1 MB
+
 class HttpResponse{
     public :
         HttpResponse();

@@ -276,15 +276,20 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f){
         std::string boundary;
         size_t pos = content_type.find("boundary=");
         if (pos != std::string::npos)
-        boundary = "--" + content_type.substr(pos + 9); // skip "boundary="
-        
-        // char cwd[PATH_MAX];
-        // if (getcwd(cwd, sizeof(cwd)) != 0)
-        // f.upload_path = cwd;
-        
+        boundary = "--" + content_type.substr(pos + 9);
         body_data = req.body;
-        handle_multiple_form(body_data, boundary, res, f.upload_path, f);
-        return;
+        if (body_data.size() > MAX_SIZE) {
+            res.set_status(413, "Payload Too Large");
+            res.set_body(get_error_page(413, f));
+            return;
+        }
+
+        if (!boundary.empty())
+            handle_multiple_form(body_data, boundary, res, f.upload_path, f);
+        else {
+            res.set_status(400, "Bad Request");
+            res.set_body(get_error_page(400, f));
+        }
     }
 
     if (req.headers.count("content-length"))

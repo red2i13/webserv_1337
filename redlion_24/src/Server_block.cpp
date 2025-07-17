@@ -14,9 +14,13 @@ struct sockaddr_in *Server_block::get_ip_addr(){
 std::vector<std::string> Server_block::get_Snames() const{
 	return(server_names);
 }
-std::map<std::string, std::vector<std::string> > Server_block::get_location_blocks() const {
-	return location_blocks;
+std::vector<Location>Server_block::get_location_block(std::string loc) const {
+	return location_blocks.find(loc) != location_blocks.end() ? location_blocks.at(loc) : std::vector<Location>();
 }
+std::map<std::string, std::vector<Location> > Server_block::get_locations_blocks() const {
+	return location_blocks;
+}		
+
 void Server_block::set_timeout(int t){
 	timeout = t;
 }
@@ -115,18 +119,27 @@ Server_block & Server_block::operator=(const Server_block &obj){
 	return(*this);
 }
 
-void Server_block::set_location(std::string directory, std::vector <std::string> &list){
+void Server_block::set_location(std::string directory, std::vector<ConfigNode> &children){
 	//TODO add a check for the location if its valid
-	if(list.size() > 0){
-		std::string loc = directory;
-		location_blocks[loc] = std::vector<std::string>();
-		for(size_t i = 0; i < list.size(); i++){
-			location_blocks[loc].push_back(list[i]);
+	std::vector<std::string> list;
+	Location location;
+	for(size_t i = 0; i < children.size(); i++){
+		if(children[i].name == "root"){
+			list = children[i].values;
+			location.path = list[0];
 		}
+		else if(children[i].name == "allowed_methods")
+			location.allowed_methods = children[i].values;
+		else if(children[i].name == "client_max_body_size")
+		location.max_body_size = atoi(children[i].values[0].c_str());
+		else if(children[i].name == "autoindex")
+			location.autoindex = (children[i].values[0] == "on");
+		else if(children[i].name == "post_dir")
+			location.upload_path = children[i].values[0];
+		else if(children[i].name == "cgi_flag")
+			location.cgi_flag = (children[i].values[0] == "on");
 	}
-	else{
-		std::cout << "Invalid location, using default location" << std::endl;
-	}
+	location_blocks[directory].push_back(location);
 }
 bool isDirectory(const char *path) {
     struct stat statbuf;

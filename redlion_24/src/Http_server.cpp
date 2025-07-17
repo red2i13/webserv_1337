@@ -313,8 +313,9 @@ int Http_server::check_init_http_server(){
                             new_svb->set_err_pages((*n_dir)[k].values);
                         else  if((*n_dir)[k].name == "listen")
                             new_svb->set_ip_host((*n_dir)[k].values);
-                        else  if((*n_dir)[k].name == "location")
-                            new_svb->set_location((*n_dir)[k].values[0], (*n_dir)[k].children[0].values);
+                        else  if((*n_dir)[k].name == "location"){
+                            new_svb->set_location((*n_dir)[k].values[0], (*n_dir)[k].children);
+                        }
                         else if((*n_dir)[k].name == "autoindex")
                             new_svb->set_dir_listen((*n_dir)[k].values[0] == "on");
                         else if((*n_dir)[k].name == "post_dir")

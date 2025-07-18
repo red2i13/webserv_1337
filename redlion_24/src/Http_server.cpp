@@ -121,7 +121,7 @@ int Http_server::handle_client_io(int it_fd){
             //////////
             end_request = end_headers + content_length;
             HttpRequest req;
-            if(!req.parse(conn.buffer.substr(0, end_request), *blocks[0])){
+            if(!req.parse(conn.buffer.substr(0, end_request), *blocks[fd_block_map[events[it_fd].data.fd]])){
                 req.bad_req = true;
             }
             // std::cout << "==============" << conn.buffer << "================" << std::endl;
@@ -326,11 +326,11 @@ int Http_server::check_init_http_server(){
                         else if ((*n_dir)[k].name == "root")
                             new_svb->set_root_path((*n_dir)[k].values[0]);
                         // else if ((*n_dir)[k].name == "index")
-                        //     new_svb->index_flag = true;
-                        // else if ((*n_dir)[k].name == "upload")
-                        //     new_svb->upload_flag = true;
+                            // new_svb->set_index_file();
                         // else if ((*n_dir)[k].name == "cgi")
                         //     new_svb->cgi_flag = true;
+                        else
+                            return 1;
                     }
                     blocks.push_back(new_svb);
                 }

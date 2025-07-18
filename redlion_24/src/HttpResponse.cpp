@@ -107,7 +107,7 @@ void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f, std::strin
     if (!locations.redirect.empty()) {
         if (req.target == locations.redirect || locations.redirect == req.target + "/") {
             res.set_status(500, "Redirect Loop Detected");
-            res.set_body("<html><body><h1>500 Internal Server Error</h1><p>Redirect loop detected.</p></body></html>");
+            res.set_body(get_error_page(500, f));
             return;
         }
         res.set_status(301, "Moved Permanently");
@@ -164,7 +164,7 @@ void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f, std::strin
             res.set_body(buffer.str());
             res.set_header("Content-Length", to_str(buffer.str().length()));
         } 
-        else if (f.index_flag){
+        else if (locations.autoindex){
             // Assume autoindex is enabled (you can replace this with a config flag)
             std::string listing = generate_directory_listing(path, req.target);
             res.set_status(200, "OK");

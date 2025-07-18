@@ -36,7 +36,7 @@ int Http_server::init_server_blocks(){
         setsockopt(socket_fds[i], SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
         if(bind(socket_fds[i], addr, sizeof(struct sockaddr_in)) == -1){
             perror("bind fails: ");
-            return(1);
+            return(throw 4,1);
         }
         if(listen(socket_fds[i], 64) == -1){
             return(perror("listen fails: "), 1);
@@ -315,6 +315,8 @@ int Http_server::check_init_http_server(){
                         else  if((*n_dir)[k].name == "listen")
                             new_svb->set_ip_host((*n_dir)[k].values);
                         else  if((*n_dir)[k].name == "location"){
+
+                            //fix this probably child values
                             new_svb->set_location((*n_dir)[k].values[0], (*n_dir)[k].children);
                         }
                         else if((*n_dir)[k].name == "autoindex")
@@ -325,12 +327,10 @@ int Http_server::check_init_http_server(){
                             new_svb->set_timeout(atoi((*n_dir)[k].values[0].c_str()));
                         else if ((*n_dir)[k].name == "root")
                             new_svb->set_root_path((*n_dir)[k].values[0]);
-                        // else if ((*n_dir)[k].name == "index")
-                            // new_svb->set_index_file();
-                        // else if ((*n_dir)[k].name == "cgi")
-                        //     new_svb->cgi_flag = true;
+                        else if ((*n_dir)[k].name == "}")
+                            (void)n_dir;
                         else
-                            return 1;
+                            return (delete new_svb, 1);
                     }
                     blocks.push_back(new_svb);
                 }

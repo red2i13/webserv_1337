@@ -121,9 +121,6 @@ void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f, std::strin
         // res.set_status(301, "Moved Permanently");
         // res.set_header("Location", locations.redirect);
         // res.set_body("<html><body><h1>301 Moved</h1><p><a href=\"" + locations.redirect + "\">Moved here</a></p></body></html>");
-        Location next = f.get_location_block(locations.redirect);
-        std::cout << "Next location: " << next.path << std::endl;
-        std::cout << "Redirecting to: " << locations.redirect << std::endl;
         req.target = locations.redirect;
         handle_get(req, res, f, locations.redirect);
         return;

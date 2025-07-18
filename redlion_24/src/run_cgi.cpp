@@ -162,28 +162,153 @@ int handle_cgi(HttpRequest &request, HttpResponse &response, Server_block &f)
 		execve(argv[0], argv, &envp[0]);
 		exit(1);
 	}
-
+	//parent process
 	close(fd_in[0]);
 	close(fd_out[1]);
-	if (request.method == "POST")
-	{
+	
+	// Create epoll instance
+	int epoll_fd = epoll_create1(0);
+	if (epoll_fd == -1) {
+		response.set_error(500, "Failed to create epoll instance");
+		close(fd_in[1]);
+		close(fd_out[0]);
+		return 1;
+	}
+	
+	// Make fds non-blocking
+	int flags = fcntl(fd_in[1], F_GETFL, 0);
+	fcntl(fd_in[1], F_SETFL, flags | O_NONBLOCK);
+	
+	flags = fcntl(fd_out[0], F_GETFL, 0);
+	fcntl(fd_out[0], F_SETFL, flags | O_NONBLOCK);
+	
+	// Add write fd to epoll
+	struct epoll_event ev_write;
+	ev_write.events = EPOLLOUT;
+	ev_write.data.fd = fd_in[1];
+	if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd_in[1], &ev_write) == -1) {
+		response.set_error(500, "Failed to add write fd to epoll");
+		close(epoll_fd);
+		close(fd_in[1]);
+		close(fd_out[0]);
+		return 1;
+	}
+	
+	// Add read fd to epoll
+	struct epoll_event ev_read;
+	ev_read.events = EPOLLIN;
+	ev_read.data.fd = fd_out[0];
+	if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd_out[0], &ev_read) == -1) {
+		response.set_error(500, "Failed to add read fd to epoll");
+		close(epoll_fd);
+		close(fd_in[1]);
+		close(fd_out[0]);
+		return 1;
+	}
+	
+	// Handle POST/GET data writing and reading with epoll
+	std::string data_to_write;
+	if (request.method == "POST") {
 		Location loc = f.get_location_block(request.target);
-		handle_post(request,response, f, loc.upload_path);
-		write(fd_in[1], request.body.c_str(), request.body.size());
+		handle_post(request, response, f, loc.upload_path);
+		data_to_write = request.body;
+	} else if (request.method == "GET") {
+		data_to_write = request.body;
 	}
-	else if (request.method == "GET")
-	{
-		write(fd_in[1], request.body.c_str(), request.body.size());
-	}
-	close(fd_in[1]);
-
-	char buffer[1024];
+	
+	size_t bytes_written = 0;
+	bool write_complete = data_to_write.empty();
+	bool read_complete = false;
 	std::string output;
-	ssize_t n;
-	while ((n = read(fd_out[0], buffer, sizeof(buffer))) > 0)
-		output.append(buffer, n);
+	char buffer[1024];
+	
+	// Epoll loop with 2-second timeout
+	struct epoll_event events[2];
+	int timeout_ms = 500; // Check every 500ms for more responsive timeout
+	time_t start_time = time(NULL);
+	// time_t last_activity = start_time;
+	const int total_timeout_seconds = 2; // 2 seconds total timeout
+	
+	while (!write_complete || !read_complete) {
+		int nfds = epoll_wait(epoll_fd, events, 2, timeout_ms);
+		time_t current_time = time(NULL);
+		
+		if (nfds == -1) {
+			response.set_error(500, "Epoll wait failed");
+			break;
+		}
+		
+		if (nfds == 0) {
+			// No events, check if total timeout exceeded
+			if (current_time - start_time >= total_timeout_seconds) {
+				kill(pid, SIGKILL);
+				response.set_error(504, "CGI script timeout");
+				break;
+			}
+			// No timeout yet, continue waiting
+			continue;
+		}
+		
+		// Update last activity time when we get events
+		
+		// Even if we have events, check for overall timeout
+		if (current_time - start_time >= total_timeout_seconds) {
+			kill(pid, SIGKILL);
+			response.set_error(504, "CGI script timeout");
+			break;
+		}
+		
+		for (int i = 0; i < nfds; i++) {
+			if (events[i].data.fd == fd_in[1] && (events[i].events & EPOLLOUT)) {
+				// Write data to CGI script
+				if (!write_complete && bytes_written < data_to_write.size()) {
+					ssize_t written = write(fd_in[1], data_to_write.c_str() + bytes_written, 
+										  data_to_write.size() - bytes_written);
+					if (written > 0) {
+						bytes_written += written;
+						if (bytes_written >= data_to_write.size()) {
+							write_complete = true;
+							close(fd_in[1]);
+							epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd_in[1], NULL);
+						}
+					} else if (written == -1 ) {
+						response.set_error(500, "Write to CGI failed");
+						write_complete = true;
+					}
+				}
+			}
+			
+			if (events[i].data.fd == fd_out[0] && (events[i].events & EPOLLIN)) {
+				// Read data from CGI script
+				ssize_t n = read(fd_out[0], buffer, sizeof(buffer));
+				if (n > 0) {
+					output.append(buffer, n);
+					// Update last activity only when we actually read data
+				} else if (n == 0) {
+					// EOF reached
+					read_complete = true;
+					epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd_out[0], NULL);
+				} else if (n == -1 ) {
+					response.set_error(500, "Read from CGI failed");
+					read_complete = true;
+				}
+			}
+			
+			if (events[i].events & (EPOLLHUP | EPOLLERR)) {
+				if (events[i].data.fd == fd_out[0]) {
+					read_complete = true;
+				}
+				if (events[i].data.fd == fd_in[1]) {
+					write_complete = true;
+				}
+			}
+		}
+	}
+	
+	close(epoll_fd);
+	if (!write_complete) close(fd_in[1]);
 	close(fd_out[0]);
-	waitpid(pid, NULL, 0);
+	waitpid(pid, NULL, WNOHANG);
 
 
 	if (request.cookies.find("session_id=") == std::string::npos &&

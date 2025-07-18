@@ -8,6 +8,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/wait.h>
+#include <signal.h>
+#include <sys/epoll.h>
 #include <cstdlib>
 #include <cstring>
 #include <cerrno>

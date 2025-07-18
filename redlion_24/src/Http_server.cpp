@@ -121,7 +121,7 @@ int Http_server::handle_client_io(int it_fd){
             //////////
             end_request = end_headers + content_length;
             HttpRequest req;
-            if(!req.parse(conn.buffer.substr(0, end_request))){
+            if(!req.parse(conn.buffer.substr(0, end_request), *blocks[0])){
                 req.bad_req = true;
             }
             // std::cout << "==============" << conn.buffer << "================" << std::endl;

@@ -13,6 +13,8 @@ struct Location {
 	bool autoindex; // true if directory listing is enabled
 	bool cgi_flag; // true if CGI is enabled for this location
 	std::string upload_path; // path for file uploads
+	std::string index; // index file name
+	std::string redirect; // redirect URL
 };
 
 //

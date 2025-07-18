@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <sstream>
 #include <map>
+#include "Server_block.hpp"
 
 class HttpRequest{
     public :
@@ -22,13 +23,13 @@ class HttpRequest{
         std::map<std::string, std::string> headers;
         std::string version;
         std::string body;
-        bool parse(const std::string &raw_request);
+        bool parse(const std::string &raw_request, Server_block &f);
         std::string url_decode(const std::string &str);
         void extract_query(const std::string& q);
         std::string trim(const std::string &str);
         std::string cookies;
     private :
-        bool parse_start_line();
+        bool parse_start_line(Server_block &f);
 };
 
 

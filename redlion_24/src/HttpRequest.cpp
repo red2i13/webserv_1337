@@ -11,7 +11,7 @@ std::string to_lower(const std::string &str) {
 }
 
 
-bool HttpRequest::parse(const std::string &raw_request){
+bool HttpRequest::parse(const std::string &raw_request, Server_block &f){
     size_t header_end = raw_request.find("\r\n\r\n");
     if (header_end == std::string::npos){
         std::cout<<"1 parse err"<<std::endl;
@@ -22,7 +22,7 @@ bool HttpRequest::parse(const std::string &raw_request){
     
     size_t first_crlf = header_part.find("\r\n");
     this->start_line = header_part.substr(0, first_crlf);
-    if (!parse_start_line())
+    if (!parse_start_line(f))
         return (false);
     if (method.empty() || target.empty() || version.empty())
         return false;
@@ -62,7 +62,7 @@ bool HttpRequest::parse(const std::string &raw_request){
     return (true);
 }
 
-bool HttpRequest::parse_start_line(){
+bool HttpRequest::parse_start_line(Server_block &f){
     size_t first_space = this->start_line.find(' ');
     if (first_space == std::string::npos)
         return false;
@@ -87,8 +87,10 @@ bool HttpRequest::parse_start_line(){
         this->query = "";
     }
     this->target = url_decode(this->target);
+    Location loc = f.get_location_block(target);
     if (target.find("/cgi-bin/") != std::string::npos)
-        cgi_flag = true;
+        if (loc.cgi_flag == true)
+            cgi_flag = true;
     this->version = this->start_line.substr(second_space + 1);
     if (version != "HTTP/1.1")
     {

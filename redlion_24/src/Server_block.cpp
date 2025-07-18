@@ -159,6 +159,10 @@ void Server_block::set_location(std::string directory, std::vector<ConfigNode> &
 			location.upload_path = children[i].values[0];
 		else if(children[i].name == "cgi_flag")
 			location.cgi_flag = (children[i].values[0] == "on");
+		else if(children[i].name == "index")
+			location.index = children[i].values[0];
+		else if(children[i].name == "return")
+			location.redirect = children[i].values[1];
 	}
 	location_blocks[directory] = location;
 }

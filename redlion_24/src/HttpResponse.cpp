@@ -35,6 +35,7 @@ std::string get_error_page(int code, Server_block &f) {
 void handle_request(HttpRequest &req, HttpResponse &res, Server_block &flag) {
     Location loc = flag.get_location_block(req.target);
     std::vector<std::string> list =  loc.allowed_methods;
+    std::cout << req.method << std::endl;
     for(std::vector<std::string>::iterator it = list.begin(); it != list.end(); ++it) {
         if (req.method == *it && req.method == "GET") {
             handle_get(req, res, flag, loc.path);
@@ -98,10 +99,22 @@ std::string extract_directory_from_target(const std::string& target) {
 
 
 void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f, std::string location) {
-    // std::string location = extract_directory_from_target(req.target);
-    // std::map<std::string, std::vector<std::string> > location_blocks = f.get_location_blocks();
+    (void)location;
     std::string path;
-    Location locations = f.get_location_block(location);
+    Location locations = f.get_location_block(req.target);
+    std::cout << "Redirecting " << req.target << " to " << locations.redirect << std::endl;
+
+    if (!locations.redirect.empty()) {
+        if (req.target == locations.redirect || locations.redirect == req.target + "/") {
+            res.set_status(500, "Redirect Loop Detected");
+            res.set_body("<html><body><h1>500 Internal Server Error</h1><p>Redirect loop detected.</p></body></html>");
+            return;
+        }
+        res.set_status(301, "Moved Permanently");
+        res.set_header("Location", locations.redirect);
+        res.set_body("<html><body><h1>301 Moved</h1><p><a href=\"" + locations.redirect + "\">Moved here</a></p></body></html>");
+        return;
+    }
 
     std::string root_path;
     if (locations.path.empty()) {
@@ -113,33 +126,7 @@ void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f, std::strin
     std::string target = req.target;
 
     std::string base_dir = root_path;
-    // std::cout << "Base directory: " << base_dir << std::endl;
-    // if (location_blocks.count("/") > 0 && !location_blocks["/"].empty()) {
-    //     base_dir += "/" + location_blocks["/"][0];
-    // }
-
-    // if (location_blocks.count(location) > 0 && !location_blocks[location].empty()) {
-    //     base_dir = root_path + "/" + location_blocks[location][0];
-    // }
-
-    // if (!base_dir.empty() && base_dir[base_dir.length() - 1] == '/' &&
-    //     !target.empty() && target[0] == '/')
-    // {
-    //     path = base_dir + target.substr(1);
-    // }
-    // else
-    // {
         path = base_dir + target;
-    // }
-
-
-    // std::cout << "Target: " << target << std::endl;
-
-    // std::cout << "GET request for: " << target << std::endl;
-    // std::cout << "Resolved path: " << path << std::endl;
-
-
-
     struct stat statbuf; //i check if the file or dir exist
     if (stat(path.c_str(), &statbuf) == -1) {
         res.set_status(404, "Not Found");
@@ -167,7 +154,7 @@ void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f, std::strin
             return;
         }
 
-        std::string index_path = path + "/index.html";
+        std::string index_path = path + locations.index;
         std::ifstream index_file(index_path.c_str());
         if (index_file.is_open()) {
             std::stringstream buffer;
@@ -371,6 +358,11 @@ void handle_delete(HttpRequest &req, HttpResponse &res, Server_block &f, std::st
     if (stat(path.c_str(), &s) != 0) {
         res.set_status(404, "Not Found");
         res.set_body(get_error_page(404, f));
+        return;
+    }
+    if (access(path.c_str(), W_OK) != 0) {
+        res.set_status(403, "Forbidden");
+        res.set_body(get_error_page(403, f));
         return;
     }
 

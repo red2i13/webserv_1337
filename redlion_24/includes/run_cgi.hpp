@@ -16,23 +16,14 @@
 #include "Server_block.hpp"
 #include <ctime>
 #include <filesystem> 
-// ==== Basic Structs ====
-// struct Request {
-// 	std::string method;
-// 	std::string query;
-// 	std::string body;
-// 	std::string script_path;
-// 	std::map<std::string, std::string> headers;
-// };
-
 class SessionManager {
-private:
-	std::map<std::string, int> sessions;
-	int visit_count;
+// private:
+
 public:
+std::map<std::string, int> sessions;
 	std::string get_or_create_session_id(const std::string &client_cookie);
-	int get_visit_count(const std::string &session_id);
-	void increment_visit(const std::string &session_id);
+	int track(const std::string &session_id);
+	int track_and_get_visit_count(const std::string &session_id);
 };
 
 struct Response {
@@ -41,6 +32,4 @@ struct Response {
 	std::string body;
 };
 
-void set_error(int status_code, const std::string &message);
-void set_success(int status_code, const std::string &message);
 int handle_cgi(HttpRequest &request, HttpResponse &response, Server_block &f);

@@ -136,6 +136,8 @@ int Http_server::handle_client_io(int it_fd){
         //
         conn.last_activity = time(0);
 }
+        // std::cout << "Parsing HTTP request" << std::endl;
+
     if(!conn.requests.empty() && conn.mode == READING){
         //if the request is parsed and ready to be processed
         //change the mode to processing

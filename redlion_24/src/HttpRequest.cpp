@@ -1,6 +1,8 @@
 #include "../includes/HttpRequest.hpp"
 
-HttpRequest::HttpRequest() : bad_req(false), is_keep_alive(true), cgi_flag(false){}
+HttpRequest::HttpRequest() : bad_req(false), is_keep_alive(true), cgi_flag(false){
+    redirect_count = 0;
+}
 
 std::string to_lower(const std::string &str) {
     std::string result = str;
@@ -23,20 +25,20 @@ bool HttpRequest::parse(const std::string &raw_request, Server_block &f){
     size_t first_crlf = header_part.find("\r\n");
     this->start_line = header_part.substr(0, first_crlf);
     if (!parse_start_line(f))
-        return (false);
+    return (false);
     if (method.empty() || target.empty() || version.empty())
-        return false;
+    return false;
     header_part.erase(0, first_crlf + 2);
     // size_t pos = 0;
-
+    
     std::stringstream header_stream(header_part);
     std::string line;
-
+    
     while (std::getline(header_stream, line)) {
         // Remove possible \r at end
         if (!line.empty() && line[line.size() - 1] == '\r')
-            line.erase(line.size() - 1);
-
+        line.erase(line.size() - 1);
+        
         if (line.empty())
             break;
 
@@ -90,7 +92,10 @@ bool HttpRequest::parse_start_line(Server_block &f){
     Location loc = f.get_location_block(target);
     if (target.find("/cgi-bin/") != std::string::npos)
         if (loc.cgi_flag == true)
+        {
+            std::cout << "CGI enabled for location: " << loc.path << std::endl;
             cgi_flag = true;
+        }
     this->version = this->start_line.substr(second_space + 1);
     if (version != "HTTP/1.1")
     {

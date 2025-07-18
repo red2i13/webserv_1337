@@ -12,6 +12,7 @@
 class HttpRequest{
     public :
         HttpRequest();
+        int redirect_count;
         std::string start_line;
         bool bad_req;
         bool is_keep_alive;

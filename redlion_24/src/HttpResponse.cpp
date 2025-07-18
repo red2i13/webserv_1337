@@ -97,34 +97,35 @@ std::string extract_directory_from_target(const std::string& target) {
     return target.substr(0, last_slash);
 }
 
-bool method_allowed(const std::string& method, const std::vector<std::string>& allowed_methods) {
-    for (size_t i = 0; i < allowed_methods.size(); ++i) {
-        if (allowed_methods[i] == method) {
-            return true;
-        }
-    }
-    return false;
-}
 
 void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f, std::string location) {
     (void)location;
     std::string path;
     Location locations = f.get_location_block(req.target);
 
-    // if (!method_allowed(req.method, locations.allowed_methods)) {
-    //     res.set_status(405, "Method Not Allowed");
-    //     res.set_body(get_error_page(405, f));
-    //     return;
-    // }
+
     if (!locations.redirect.empty()) {
+        if (req.redirect_count >= 5) {
+            std::cout << "Too Many Redirects" << std::endl;
+            res.set_status(500, "Too Many Redirects");
+            res.set_body(get_error_page(500, f));
+            return;
+        }
         if (req.target == locations.redirect || locations.redirect == req.target + "/") {
             res.set_status(500, "Redirect Loop Detected");
             res.set_body(get_error_page(500, f));
             return;
         }
-        res.set_status(301, "Moved Permanently");
-        res.set_header("Location", locations.redirect);
-        res.set_body("<html><body><h1>301 Moved</h1><p><a href=\"" + locations.redirect + "\">Moved here</a></p></body></html>");
+        req.redirect_count++;
+        std::cout << "redir_count: " << req.redirect_count << std::endl;    
+        // res.set_status(301, "Moved Permanently");
+        // res.set_header("Location", locations.redirect);
+        // res.set_body("<html><body><h1>301 Moved</h1><p><a href=\"" + locations.redirect + "\">Moved here</a></p></body></html>");
+        Location next = f.get_location_block(locations.redirect);
+        std::cout << "Next location: " << next.path << std::endl;
+        std::cout << "Redirecting to: " << locations.redirect << std::endl;
+        req.target = locations.redirect;
+        handle_get(req, res, f, locations.redirect);
         return;
     }
 

@@ -33,7 +33,7 @@ int main(int ac, char *av[])
 
     }
     catch (std::exception &e){
-        std::cout << "exception starts" << std::endl;
+        std::cout << "File not found or Parsing error" << std::endl;
     }
     catch(...){
         std::cout << "Error while parsing the config file" << std::endl;

@@ -258,8 +258,8 @@ void Http_server::check_connection_timeout(){
     time_t current_time = time(0);
     std::map<int, Connection>::iterator it = connections.begin() ;
     while ( it != connections.end()){
-        // std::cout  << "size map "<< connections.size() << std::endl;
-        if(current_time - it->second.last_activity > 30) {
+        std::cout << "timout value " << it->second.server->timeout << std::endl;
+        if(current_time - it->second.last_activity > it->second.server->timeout){ 
             int fd_to_close = it->first; // Store the fd before incrementing the iterator
             std::map<int, Connection>::iterator to_erase = it;
             it++;

@@ -86,7 +86,10 @@ int Server_Conf_Parser::parse_data(	std::vector<ConfigNode> &parent, size_t &i){
 		if(tokens.size() > 1){
 			if(tokens.back()[tokens.back().size() - 1] == '{'){
 				//remove the brace
-				tokens.pop_back();
+				if (tokens.back().size() == 3)
+					tokens.pop_back();
+				else if(tokens.back().size() == 2)
+					tokens.back().erase(tokens.back().size() - 1);
 				i++;
 				parse_data(node.children, i);
 			}

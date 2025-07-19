@@ -13,7 +13,7 @@ std::string to_lower(const std::string &str) {
 }
 
 
-bool HttpRequest::parse(const std::string &raw_request, Server_block &f){
+bool HttpRequest::parse(const std::string &raw_request, Server_block &f) {
     size_t header_end = raw_request.find("\r\n\r\n");
     if (header_end == std::string::npos){
         std::cout<<"1 parse err"<<std::endl;
@@ -49,8 +49,6 @@ bool HttpRequest::parse(const std::string &raw_request, Server_block &f){
             headers[to_lower(key)] = value;
             if (to_lower(key) == "cookie") {
                 this->cookies = value;
-                // this->cookies = headers["cookie"];
-                // std::cout << "1x - COOKIE FROM REQUEST: " << this->cookies << std::endl;
             }
             if(to_lower(key) == "connection") {
                 if (to_lower(value) == "close") {
@@ -64,7 +62,7 @@ bool HttpRequest::parse(const std::string &raw_request, Server_block &f){
     return (true);
 }
 
-bool HttpRequest::parse_start_line(Server_block &f){
+bool HttpRequest::parse_start_line(Server_block &f) {
     size_t first_space = this->start_line.find(' ');
     if (first_space == std::string::npos)
         return false;
@@ -97,11 +95,13 @@ bool HttpRequest::parse_start_line(Server_block &f){
             cgi_flag = true;
         }
     this->version = this->start_line.substr(second_space + 1);
-    if (version != "HTTP/1.1")
-    {
-        std::cout<<"Unsupported HTTP version !"<<std::endl;
-        return (false);
-    }
+    // if (version != "HTTP/1.1")
+    // {
+    //     res.set_status(505, "HTTP Version Not Supported");
+    //     res.set_header("Content-Type", "text/html");
+    //     res.set_body(get_error_page(505, f));
+    //     return (false);
+    // }
     return (true);
 }
 

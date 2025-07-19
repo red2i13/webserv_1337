@@ -1,14 +1,5 @@
 #include "../includes/Http_server.hpp"
 
-
-//new todo
-//DONEadd a timer function for checking timeout 
-//DONEadd a function that a read full request until pushes them into the connection
-//DONEadd a function that send the response in order
-//DONE change epoll from level to edge triggered
-//DONEcheck the header for closed connection
-// STILL DOING You're popping responses without checking if the send was successful or complete.
-
 int Http_server::make_socket_nonblocking(int fd){
     //throw an error internal server error
     int flags = fcntl(fd, F_GETFL ,0);
@@ -90,8 +81,6 @@ int Http_server::handle_client_io(int it_fd){
     if(events[it_fd].events & EPOLLIN){        
         while((bytes = recv(events[it_fd].data.fd, buffer, sizeof(buffer), 0)) > 0)
         {
-            // if(bytes == -1)
-            //     return(1);
             if(!bytes)
             {
                 std::cerr << "Error reading from client fd: " << events[it_fd].data.fd << std::endl;
@@ -124,12 +113,7 @@ int Http_server::handle_client_io(int it_fd){
             if(!req.parse(conn.buffer.substr(0, end_request), *blocks[fd_block_map[events[it_fd].data.fd]])){
                 req.bad_req = true;
             }
-            // std::cout << "==============" << conn.buffer << "================" << std::endl;
             conn.requests.push(req);
-            // std::cout << "Headers:" << std::endl;
-            // for (std::map<std::string, std::string>::iterator it = conn.requests.front().headers.begin(); it != conn.requests.front().headers.end(); ++it) {
-            //     std::cout << it->first << ": " << it->second << std::endl;
-            // }
             conn.buffer.erase(0, end_request); // Remove the parsed request from
         }
         conn.mode = READING;
@@ -172,8 +156,13 @@ int Http_server::handle_client_io(int it_fd){
 
         std::string response_str = res.to_string();
         int byte_sent  = send(events[it_fd].data.fd, response_str.c_str(), response_str.length(), 0);
-        (void)byte_sent; // Suppress unused variable warning
-        // std::cout << "bytes sent "<< byte_sent  << std::endl; 
+        if(byte_sent < 0){
+            std::cerr << "Error sending response to client fd: " << events[it_fd].data.fd << std::endl;
+            close(events[it_fd].data.fd);
+            epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
+            connections.erase(events[it_fd].data.fd);
+            return(1);
+        }
         if(conn.mode == CLOSED) 
         {
             std::cout << "i am closed\n";
@@ -212,7 +201,7 @@ int Http_server::socket_main_loop(){
 
     }
     for(;;){
-        std::cout  << "size map "<< connections.size() << std::endl;
+        std::cout  << "Nb of connection(s) "<< connections.size() << std::endl;
         int ready_fd = epoll_wait(epfd, events, MAX_EVENT, 1000);
         if(ready_fd < 0){
             check_connection_timeout();
@@ -222,10 +211,9 @@ int Http_server::socket_main_loop(){
         // std::cout << "num of ready fds " << ready_fd  << std::endl;
         for(int it_fd = 0; it_fd < ready_fd; it_fd++)
         {
-            std::cout << events[it_fd].data.fd << " event number " <<it_fd<< std::endl;
             if (events[it_fd].events & (EPOLLHUP | EPOLLERR | EPOLLRDHUP))
             {
-                std::cout << "&%^&$*^&%^#&*^&%$^^&" << std::endl;
+                std::cout << "Connection hangs up or quit" << std::endl;
                 close(events[it_fd].data.fd);
                 epoll_ctl(epfd, EPOLL_CTL_DEL, events[it_fd].data.fd, &ev);
                 connections.erase(events[it_fd].data.fd);
@@ -233,7 +221,7 @@ int Http_server::socket_main_loop(){
             else if(checkIfListen(events[it_fd].data.fd))
             {
                 c_fd = accept(events[it_fd].data.fd, reinterpret_cast<struct sockaddr *>(&c_addr), reinterpret_cast<socklen_t*>(&len_c_addr));      
-                std::cout << "setting fd return " << make_socket_nonblocking(c_fd) << std::endl;
+                make_socket_nonblocking(c_fd);
                 fd_block_map[c_fd] = block_num[events[it_fd].data.fd];
                 connections[c_fd] = Connection(c_fd, blocks[block_num[events[it_fd].data.fd]], READING);
                 if(c_fd != -1)
@@ -258,7 +246,6 @@ void Http_server::check_connection_timeout(){
     time_t current_time = time(0);
     std::map<int, Connection>::iterator it = connections.begin() ;
     while ( it != connections.end()){
-        std::cout << "timout value " << it->second.server->timeout << std::endl;
         if(current_time - it->second.last_activity > it->second.server->timeout){ 
             int fd_to_close = it->first; // Store the fd before incrementing the iterator
             std::map<int, Connection>::iterator to_erase = it;

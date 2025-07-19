@@ -13,7 +13,6 @@ std::string SessionManager::get_or_create_session_id(const std::string &client_c
 		else{
 
 			sessions[sss] = 1;
-			std::cout << "New session created: " << sss << std::endl;
 		}
 		return sss;
 	}
@@ -100,7 +99,6 @@ int handle_cgi(HttpRequest &request, HttpResponse &response, Server_block &f)
 	}
 
 	std::string session_id = sessionManager.get_or_create_session_id(request.cookies);
-	std::cout << session_id << std::endl;
 	int visit_count = sessionManager.track_and_get_visit_count(session_id);
 	
 	pid_t pid = fork();
@@ -123,7 +121,6 @@ int handle_cgi(HttpRequest &request, HttpResponse &response, Server_block &f)
 		env_strings.push_back("REQUEST_METHOD=" + request.method);
 		env_strings.push_back("HTTP_COOKIE=" + request.cookies);
 		env_strings.push_back("visit_count=" + int_to_string(visit_count));
-		std::cout << "visit_count: " << visit_count << std::endl;
 		env_strings.push_back("QUERY_STRING=" + request.query);
 		env_strings.push_back("CONTENT_LENGTH=" + int_to_string(request.body.size()));
 		env_strings.push_back("GATEWAY_INTERFACE=CGI/1.1");

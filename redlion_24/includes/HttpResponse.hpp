@@ -22,10 +22,8 @@ class HttpResponse{
         void set_status(int code, const std::string& message);
         void set_header(const std::string& key, const std::string& value);
         void set_body(const std::string& body_content);
-        /////////////
         void set_error(int code, const std::string& message, const std::string& extra = "");
         void set_success(int code, const std::string& message);
-        ///////////////
     };
 
 std::string int_to_string(int n);
@@ -36,4 +34,5 @@ std::string generate_directory_listing(const std::string& path, const std::strin
 std::string decode_chunked_body(const std::string& raw);
 void handle_delete(HttpRequest& req, HttpResponse& res, Server_block& f, std::string location);
 void handle_multiple_form(const std::string& body, const std::string& boundary, HttpResponse& res, const std::string& upload_dir, Server_block& f);
+std::string get_error_page(int code, Server_block &f);
 #endif

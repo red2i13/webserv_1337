@@ -5,8 +5,6 @@
 #include <fstream>
 
 
-//Ast struct node
-
 struct ConfigNode{
 	std::string name;
 	std::vector<std::string> values;

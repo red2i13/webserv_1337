@@ -225,26 +225,33 @@
   </div>
 
   <script>
-    function sendDelete() {
-      const path = document.getElementById("delete-path").value;
-      if (!path) {
-        alert("Please enter a path.");
-        return;
-      }
+ function sendDelete() {
+  const path = document.getElementById("delete-path").value;
+  if (!path) {
+    alert("Please enter a path.");
+    return;
+  }
 
-      fetch(path, {
-        method: "DELETE"
-      })
-      .then(res => res.text())
-      .then(data => {
-        document.getElementById("delete-response").style.display = "block";
-        document.getElementById("delete-response").innerText = "Response: " + data;
-      })
-      .catch(error => {
-        document.getElementById("delete-response").style.display = "block";
-        document.getElementById("delete-response").innerText = "Error: " + error;
+  fetch(path, {
+    method: "DELETE"
+  })
+  .then(res => {
+    if (!res.ok) {
+      return res.text().then(html => {
+        // Show error page returned from the server
+        document.open();
+        document.write(html);
+        document.close();
       });
+    } else {
+      // ✅ Successful deletion → redirect to home page
+      window.location.href = "/";
     }
+  })
+  .catch(error => {
+    alert("Error: " + error);
+  });
+  }
   </script>
 
 </body>

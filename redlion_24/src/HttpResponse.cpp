@@ -11,7 +11,6 @@ std::string to_str(int value) {
 
 std::string get_error_page(int code, Server_block &f) {
     std::string filepath = f.get_root_path() + f.get_error_pages().back() + "/" + to_str(code) + ".html";
-    // std::cout << "Looking for error page at: " << filepath << std::endl;
     std::ifstream file(filepath.c_str());
 
     if (file.is_open()) {
@@ -33,9 +32,14 @@ std::string get_error_page(int code, Server_block &f) {
 
 
 void handle_request(HttpRequest &req, HttpResponse &res, Server_block &flag) {
+    if (req.version != "HTTP/1.1") {
+        res.set_status(505, "HTTP Version Not Supported");
+        res.set_header("Content-Type", "text/html");
+        res.set_body(get_error_page(505, flag));
+        return;
+    }
     Location loc = flag.get_location_block(req.target);
     std::vector<std::string> list =  loc.allowed_methods;
-    std::cout << req.method << std::endl;
     for(std::vector<std::string>::iterator it = list.begin(); it != list.end(); ++it) {
         if (req.method == *it && req.method == "GET") {
             handle_get(req, res, flag, loc.path);
@@ -43,7 +47,6 @@ void handle_request(HttpRequest &req, HttpResponse &res, Server_block &flag) {
 
         }
         else if (req.method == *it && req.method == "POST"){
-            std::cout << "+++++++++++++++" << std::endl;
             handle_post(req, res, flag, loc.upload_path);
             return;
         }
@@ -106,7 +109,6 @@ void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f, std::strin
 
     if (!locations.redirect.empty()) {
         if (req.redirect_count >= 5) {
-            std::cout << "Too Many Redirects" << std::endl;
             res.set_status(500, "Too Many Redirects");
             res.set_body(get_error_page(500, f));
             return;
@@ -117,10 +119,6 @@ void handle_get(HttpRequest& req, HttpResponse& res, Server_block& f, std::strin
             return;
         }
         req.redirect_count++;
-        std::cout << "redir_count: " << req.redirect_count << std::endl;    
-        // res.set_status(301, "Moved Permanently");
-        // res.set_header("Location", locations.redirect);
-        // res.set_body("<html><body><h1>301 Moved</h1><p><a href=\"" + locations.redirect + "\">Moved here</a></p></body></html>");
         req.target = locations.redirect;
         handle_get(req, res, f, locations.redirect);
         return;
@@ -250,7 +248,6 @@ std::string generate_directory_listing(const std::string& path, const std::strin
 void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f, std::string location = "") {
     // std::string location = extract_directory_from_target(req.target);
     Location locations = f.get_location_block(location);
-    std::cout << "LOOOOCATION  " << locations.upload_path << std::endl;
 
     if (locations.upload_path.empty())
     {
@@ -280,11 +277,11 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f, std::stri
             res.set_status(400, "Bad Request");
             res.set_body(get_error_page(400, f));
         }
+        return;
     }
 
     if (req.headers.count("transfer-encoding") && req.headers["transfer-encoding"] == "chunked")
     {
-        // std::cout << "Handling chunked transfer encoding" << std::endl;
         body_data = decode_chunked_body(req.body);
         if (body_data.empty())
         {
@@ -304,7 +301,6 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f, std::stri
     else if (req.headers.count("content-length"))
     {
         size_t content_length = atoi(req.headers["content-length"].c_str());
-        // std::cout << "debug size content " << req.body << std::endl;
         body_data = req.body.substr(0, content_length);
     } 
     else
@@ -319,14 +315,12 @@ void handle_post(HttpRequest& req, HttpResponse& res, Server_block& f, std::stri
     std::cout << "---------------------Upload path: " << locations.upload_path << std::endl;
     std::string filename = "/upload.txt";
     std::string full_path = locations.upload_path + filename;
-    // std::cout << "Full path: " << full_path << std::endl;
     std::ofstream file(full_path.c_str(), std::ios::binary);
     if (!file) {
         res.set_status(500, "Internal Server Error");
         res.set_body(get_error_page(500, f));
         return;
     }
-    // std::cout << "=============" << body_data << std::endl;
     file << body_data;
     file.close();
 
@@ -367,11 +361,13 @@ void handle_delete(HttpRequest &req, HttpResponse &res, Server_block &f, std::st
     struct stat s;
     if (stat(path.c_str(), &s) != 0) {
         res.set_status(404, "Not Found");
+        res.set_header("Content-Type", "text/html");
         res.set_body(get_error_page(404, f));
         return;
     }
     if (access(path.c_str(), W_OK) != 0) {
         res.set_status(403, "Forbidden");
+        res.set_header("Content-Type", "text/html");
         res.set_body(get_error_page(403, f));
         return;
     }
@@ -379,10 +375,12 @@ void handle_delete(HttpRequest &req, HttpResponse &res, Server_block &f, std::st
     if (S_ISREG(s.st_mode)) {
         if (unlink(path.c_str()) != 0) {
             res.set_status(500, "Internal Server Error");
+            res.set_header("Content-Type", "text/html");
             res.set_body(get_error_page(500, f));
             return;
         }
         res.set_status(204, "No Content"); // File deleted
+        res.set_header("Content-Type", "text/html");
         return;
     }
 
@@ -390,17 +388,20 @@ void handle_delete(HttpRequest &req, HttpResponse &res, Server_block &f, std::st
         // URI must end with a slash for directories
         if (req.target.empty() || req.target[req.target.size() - 1] != '/') {
             res.set_status(409, "Conflict");
+            res.set_header("Content-Type", "text/html");
             res.set_body(get_error_page(409, f));
 
             return;
         }
         if (access(path.c_str(), W_OK) != 0) {
             res.set_status(403, "Forbidden");
+            res.set_header("Content-Type", "text/html");
             res.set_body(get_error_page(403, f));
             return;
         }
         if (rmdir(path.c_str()) != 0) {
             res.set_status(500, "Internal Server Error");
+            res.set_header("Content-Type", "text/html");
             res.set_body(get_error_page(500, f));
             return;
         }
@@ -409,6 +410,7 @@ void handle_delete(HttpRequest &req, HttpResponse &res, Server_block &f, std::st
     }
 
     res.set_status(500, "Internal Server Error");
+    res.set_header("Content-Type", "text/html");
     res.set_body(get_error_page(500, f));
 }
 
@@ -418,7 +420,6 @@ void handle_multiple_form(const std::string& body, const std::string& boundary, 
     while ((start = body.find(boundary, end)) != std::string::npos) {
         start += boundary.length() + 2; // Skip boundary + CRLF
         end = body.find(boundary, start);
-        std::cout<< "uploaaaad" <<std::endl;
         if (end == std::string::npos)
         break;
         
@@ -449,7 +450,6 @@ void handle_multiple_form(const std::string& body, const std::string& boundary, 
 
             // Write to upload directory
             std::string full_path = upload_dir + filename;
-            // std::cout<< full_path << std::endl;
             std::ofstream out(full_path.c_str(), std::ios::binary);
             if (!out) {
                 res.set_status(500, "Internal Server Error");
